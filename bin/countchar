@@ -1,0 +1,89 @@
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
+require 'optparse'
+require 'plain_text'
+
+BANNER = <<"__EOF__"
+USAGE: #{File.basename($0)} [options] [INFILE.txt] < STDIN
+  Print the number of characters in INFILE (or STDIN).
+__EOF__
+
+# Initialising the hash for the command-line options.
+OPTS = {
+  preserve_paragraph: true,
+  boundary_style: true,
+  lbs_style: :t, # :truncate,
+  lb_is_space: false,
+  sps_style: :truncate,
+  delete_asian_space: true,
+  linehead_style: :delete, 
+  linetail_style: :delete, 
+  firstsps_style: :delete,
+  lastsps_style:  :truncate,
+  line_i: nil,
+  line_f: nil,
+  # :chatter => 3,        # Default
+  debug: false,
+}
+
+# Function to handle the command-line arguments.
+#
+# ARGV will be modified, and the constant variable OPTS is set.
+#
+# @return [Hash]  Optional-argument hash.
+#
+def handle_argv
+  opt = OptionParser.new(BANNER)
+  opt.on(  '--[no-]preserve_paragraph', sprintf("Preserved paragraph structures? (Def: %s)", OPTS[:preserve_paragraph].inspect), TrueClass) {|v| OPTS[:preserve_paragraph] = v}
+  opt.on(  '--lbs-style=STYLE', sprintf("One of (t(runcate)|d(elete)|n(one)) (Def: truncate).", Symbol)) { |v| OPTS[:lbs_style]=v.strip[0].to_sym }
+  # opt.on(  '--version', "Display the version and exits.", TrueClass) {|v| OPTS[:version] = v}  # Consider opts.on_tail
+  opt.on(  '--[no-]debug', "Debug (Def: false)", TrueClass) {|v| OPTS[:debug] = v}
+  opt.separator ""        # Way to control a help message.
+  opt.separator "Note:"
+  opt.separator " Spaces are truncated in default."
+
+  opt.parse!(ARGV)
+
+  unless %i(t d n).include? OPTS[:lbs_style]
+    warn "ERROR: --lbs-style must be one of (t(runcate)|d(elete)|n(one))."; exit 1
+  end
+
+  OPTS
+end
+
+
+################################################
+# MAIN
+################################################
+
+$stdout.sync=true
+$stderr.sync=true
+
+class String
+  include PlainText
+end
+
+# Handle the command-line options => OPTS
+opts = handle_argv()
+
+str = ARGF.read
+
+puts str.count_char(
+       preserve_paragraph: opts[:preserve_paragraph],
+       boundary_style:     opts[:boundary_style],
+       lbs_style:          opts[:lbs_style],
+       lb_is_space:        opts[:lb_is_space],
+       sps_style:          opts[:sps_style],
+       delete_asian_space: opts[:delete_asian_space],
+       linehead_style:     opts[:linehead_style],
+       linetail_style:     opts[:linetail_style],
+       firstsps_style:     opts[:firstsps_style],
+       lastsps_style:      opts[:lastsps_style],
+     )
+
+exit
+
+__END__
+
+
