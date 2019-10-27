@@ -81,6 +81,10 @@ module PlainText
   #   pt1.parts[0].parts[1] # => Paragraph::Title("Breaking!")
   #   pt1.boundaries[1]     # => Boundary("\n======\n")
   #
+  # @todo
+  #   It would be smarter each instance (Regexp and Part) has its own "name"
+  #   rather than this class holds @names as an Array.
+  #
   # @author Masa Sakano (Wise Babel Ltd)
   #
   class ParseRule
@@ -462,13 +466,23 @@ module PlainText
 
     def_lb_q = PlainText::DefLineBreaks.map{|i| Regexp.quote i}.join '|'
 
-    # {ParseRule} instance to 
+    # {ParseRule} instance to
     # split a String with 2 or more linebreaks (with potentially white-spaces in between).
     # This instance can be dup-ped and used normally. However, if it is clone-d, the cloned instance would be unmodifiable.
     RuleConsecutiveLbs = self.new(/((?:#{def_lb_q})(?:#{def_lb_q}|[[:blank:]])*(?:#{def_lb_q}))/, name: 'ConsecutiveLbs') # => /((?:\r\n|\n|\r){2,}/
     RuleConsecutiveLbs.freeze
     RuleConsecutiveLbs.rules.freeze
     RuleConsecutiveLbs.names.freeze
+
+    # {ParseRule} instance to
+    # split a String with 1 linebreak that is potentially sandwiched with white-spaces
+    # (or a whitespace(s) at the very beginning or end).
+    # Essentially, each line (after Ruby-strip-ped) is treated as Paragraph.
+    # This instance can be dup-ped and used normally. However, if it is clone-d, the cloned instance would be unmodifiable.
+    RuleEachLineStrip = self.new(/(\A[[:space:]]+|[[:space:]]*\n[[:space:]]*|[[:space:]]+\z)/, name: 'EachLineStrip') # => /((?:\r\n|\n|\r){2,}/
+    RuleEachLineStrip.freeze
+    RuleEachLineStrip.rules.freeze
+    RuleEachLineStrip.names.freeze
   end # class ParseRule
 end # module PlainText
 

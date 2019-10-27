@@ -1,17 +1,19 @@
 # -*- encoding: utf-8 -*-
 
 require 'rake'
+require 'date'
 
 Gem::Specification.new do |s|
-  s.name = %q{plain_text}
-  s.version = "0.1"
+  s.name = %q{plain_text}.sub(/.*/){|c| (c == File.basename(Dir.pwd)) ? c : raise("ERROR: s.name=(#{c}) in gemspec seems wrong!")}
+  s.version = "0.2"
   # s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   %w(countchar).each do |f|
-    s.executables << f
+    path = s.bindir+'/'+f
+    File.executable?(path) ? s.executables << f : raise("ERROR: Executable (#{path}) is not executable!")
   end
   s.bindir = 'bin'
   s.authors = ["Masa Sakano"]
-  s.date = %q{2019-10-25}
+  s.date = %q{2019-10-27}.sub(/.*/){|c| (Date.parse(c) == Date.today) ? c : raise("ERROR: s.date=(#{c}) is not today!")}
   s.summary = %q{Module to handle Plain-Text}
   s.description = %q{This module provides utility functions and methods to handle plain text, classes Part/Paragraph/Boundary to represent the logical structure of a document and ParseRule to describe the rules to parse plain text to produce a Part-type Ruby instance.}
   # s.email = %q{abc@example.com}

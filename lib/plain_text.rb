@@ -55,6 +55,7 @@ module PlainText
   # @return [Integer]
   def self.count_char(instr, *rest,
                  lbs_style: :delete,
+                 linehead_style: :delete,
                  lastsps_style: :delete,
                  lb_out: "\n",
                  **k)
@@ -72,9 +73,9 @@ module PlainText
   # * Blank lines are truncated into one line with no white spaces: +boundary_style=lb_out*2(=$/*2)+
   # * Consecutive white spaces are truncated into a single space: +sps_style=:truncate+
   # * White spaces before or after a CJK character is deleted: +delete_asian_space=true+
-  # * Preceding white spaces in each line are deleted: +linehead_style=:delete+
+  # * Preceding white spaces in each line are preserved: +linehead_style=:none+
   # * Trailing white spaces in each line are deleted: +linetail_style=:delete+
-  # * Preceding line-breaks and white spaces at the beginning of the entire input string are truncated into one space: +firstsps_style=:truncate+
+  # * Line-breaks at the beginning of the entire input string are deleted: +firstlbs_style=:delete+
   # * Trailing white spaces and line-breaks at the end of the entire input string are truncated into a single linebreak: +lastsps_style=:truncate+
   # 
   # For a String with predominantly CJK characters, the following setting is recommended:
@@ -85,19 +86,25 @@ module PlainText
   # Note for the Symbols in optional arguments, the Symbol with the first character only is accepted,
   # e.g., +:d+ instead of +:delete+ (nb., +:t2+ for +:truncate2+).
   #
-  # For more detail, see the description.
+  # For more detail, see the description of each command-line options.
+  #
+  # Note that for the case of traditional genko-yoshi-style Japanese texts
+  # with "jisage" for each new paragraph marking a new paragraph, probably
+  # the best way is to make your own Part instance to give to this method,
+  # where the rule for the Part should be something like:
+  #   /(\A[[:blank:]]+|\n[[:space:]]+)/
   #
   # @param prt [PlainText:Part, String] {Part} or String to examine.
   # @param preserve_paragraph: [Boolean] Paragraphs are taken into account if true (Def: False). In the input, paragraphs are defined to be separated with more than one +lb+ with potentially some space characters in between. Their output style is specified with +boundary_style+.
   # @param boundary_style: [String, Symbol] One of +(:truncate|:truncate2|:delete|:none)+ or String. If String, the boundaries between paragraphs are replaced with this String (Def: +lb_out*2+).  If +:truncate+, consecutive linebreaks and spaces are truncated into 2 linebreaks.   +:truncate2+ are similar, but they are not truncated beyond 3 linebreaks (ie., up to 2 blank lines between Paragraphs). If +:none+, nothing is done about them. Unless :none, all the white spaces between linebreaks are deleted.
   # @param lbs_style: [Symbol] One of +(:truncate|:delete|:none)+ (Def: +:truncate+).  If :delete, all the linebreaks within paragraphs are deleted.  +:truncate+ is meaningful only when +preserve_paragraph=false+ and consecutive linebreaks are truncated into 1 linebreak.
-  # @param sps_style: [Symbol] One of +(:truncate|:delete|:none)+ (Def: +:truncate+).  If +:truncate+, the consecutive white spaces within paragraphs are truncated into a single white space. If :delete, they are deleted.
+  # @param sps_style: [Symbol] One of +(:truncate|:delete|:none)+ (Def: +:truncate+).  If +:truncate+, the consecutive white spaces within paragraphs, *except* for those at the line-head or line-tail (which are controlled by +linehead_style+ and +linehead_style+, respectively), are truncated into a single white space. If :delete, they are deleted.
   # @param lb_is_space: [Boolean] If true, a line-break, except those for the boundaries (unless +preserve_paragraph+ is false), is equivalent to a space (Def: False).
   # @param delete_asian_space: [Boolean] Any spaces between, before, after Asian characters (but punctuation) are deleted, if true (Default).
-  # @param linehead_style: [Symbol] One of +(:truncate|:delete|:none)+ (Def: :delete). Determine how to handle consecutive white spaces at the beggining of each line.
-  # @param linetail_style: [Symbol] One of +(:truncate|:delete|:markdown|:none)+ (Def: :delete). Determine how to handle consecutive white spaces at the end of each line.  If +:markdown:, two spaces at the end are preserved, whereas one or more than 2 consecutive spaces are deleted.
-  # @param firstsps_style: [Symbol, String] One of +(:truncate|:delete|:none)+ or String (Def: :default). If +:truncate+, any of white spaces and linebreaks at the very beginning of self, if exist, are truncated to a single white space (different from +lastsps_style+).  If String, they are, even if not exists, replaced with the specified String (such as a linebreak).  If +:delete+, they are deleted.
-  # @param lastsps_style: [Symbol, String] One of +(:truncate|:delete|:none|:linebreak)+ or String (Def: :truncate). If +:truncate+, any of white spaces and linebreaks at the very beginning of self, if exist, are truncated to a single white space (different from +firstsps_style+).  If +:delete+, they are deleted.  If String, they are, even if not exists, replaced with the specified String (such as a linebreak).  If +:linebreak+, +lb_out+ is used as String (i.e., only 1 linebreak always exists).
+  # @param linehead_style: [Symbol] One of +(:truncate|:delete|:none)+ (Def: :none). Determine how to handle consecutive white spaces at the beggining of each line.
+  # @param linetail_style: [Symbol] One of +(:truncate|:delete|:markdown|:none)+ (Def: :delete). Determine how to handle consecutive white spaces at the end of each line.  If +:markdown, 1 space is always deleted, and two or more spaces are truncated into two ASCII whitespaces *if* the last two spaces are ASCII whitespaces, or else untouched.
+  # @param firstlbs_style: [Symbol, String] One of +(:truncate|:delete|:none)+ or String (Def: :default). If +:truncate+, any linebreaks at the very beginning of self (and whitespaces in between), if exist, are truncated to a single linebreak.  If String, they are, even if not exists, replaced with the specified String (such as a linebreak).  If +:delete+, they are deleted.  Note This option has nothing to do with the whitespaces at the beginning of the first significant line (hence the name of the option).  Note if a (random) Part is given, this option only considers the first significant element of it.
+  # @param lastsps_style: [Symbol, String] One of +(:truncate|:delete|:none|:linebreak)+ or String (Def: :truncate). If +:truncate+, any of linebreaks *AND* white spaces at the tail of self, if exist, are truncated to a single linebreak.  If +:delete+, they are deleted.  If String, they are, even if not exists, replaced with the specified String (such as a linebreak, in which case +lb_out+ is used as String, i.e., it guarantees only 1 linebreak to exist at the end of the String).  Note if a (random) Part is given, this option only considers the last significant element of it.
   # @param lb: [String] Linebreak character like +\n+ etc (Default: $/). If this is one of the standard line-breaks, irregular line-breaks (for example, existence of CR when only LF should be there) are corrected.
   # @param lb_out: [String] Linebreak used for output (Default: +lb+)
   # @return same as prt
@@ -110,16 +117,16 @@ module PlainText
         lb_is_space: false,
         sps_style: :truncate,
         delete_asian_space: true,
-        linehead_style: :delete, 
+        linehead_style: :none,
         linetail_style: :delete, 
-        firstsps_style: :delete,
+        firstlbs_style: :delete,
         lastsps_style:  :truncate,
         lb: $/,
         lb_out: nil,           # If unspecified, will be replaced with lb
         is_debug: false
       )
 
-#isdebug = true if prt == "\n  ab\n  \ncd\n \n  \n ef\n \n  \n   \n  gh\n \n \n \n" #DEBUG
+isdebug = true if prt == "\n  \n abc\n\n \ndef\n\n \n\n"
     lb_out ||= lb  # Output linebreak
     boundary_style = lb_out*2 if true       == boundary_style
     boundary_style = ""       if [:delete, :d].include? boundary_style
@@ -128,7 +135,12 @@ module PlainText
     if !prt.class.method_defined? :last_significant_element
       # Construct a Part instance from the given String.
       ret = ''
-      prt = prt.unicode_normalize
+      begin
+        prt = prt.unicode_normalize
+      rescue ArgumentError  # (invalid byte sequence in UTF-8)
+        warn "The given String in (#{self.name}\##{__method__}) seems wrong."
+        raise
+      end
       prt = normalize_lb(prt, "\n", lb_from: (DefLineBreaks.include?(lb) ? nil : lb)).dup
       kwd = (["\r\n", "\r", "\n"].include?(lb) ? {} : { rules: /#{Regexp.quote lb}{2,}/})
       prt = (preserve_paragraph ? Part.parse(prt, **kwd) : Part.new([prt]))
@@ -148,6 +160,7 @@ module PlainText
       lb_is_space: lb_is_space,
       sps_style: sps_style,
       delete_asian_space: delete_asian_space,
+      is_debug: is_debug
     )
     # Handles the line head/tails.
     clean_text_line_head_tail!( prt,
@@ -157,8 +170,9 @@ module PlainText
 
     # Handles the file head/tail.
     clean_text_file_head_tail!( prt,
-      firstsps_style: firstsps_style,
+      firstlbs_style: firstlbs_style,
       lastsps_style:  lastsps_style,
+      is_debug: isdebug
     )
 
     # Replaces the linebreaks to the specified one
@@ -284,29 +298,29 @@ module PlainText
       )
 
     # Linebreaks and spaces
-    [[lbs_style, "\n", "\n"], [sps_style, '[[:blank:]]', " "]].each do |ea|
-      #          FROM  TO                     FROM       TO
-      case ea[0]
-      when :truncate, :t
-        prt.parts.each{|ec| ec.gsub!(/#{ea[1]}{2,}/m, ea[2])}
-      when :delete, :d
-        prt.parts.each{|ec| ec.gsub!(/#{ea[1]}/m, "")}
-      when :none, :n
-      else
-        raise ArgumentError
-      end
+    case lbs_style
+    when :truncate,   :t
+      prt.parts.each{|ec| ec.gsub!(/\n{2,}/m, "\n")}
+    when :delete,   :d
+      prt.parts.each{|ec| ec.gsub!(/\n/m, "")}
+    when :none, :n
+      # Does nothing
+    else
+      raise ArgumentError
     end
+
+    # Handles spaces in each line
+    clean_text_sps!(prt, sps_style: sps_style, is_debug: is_debug)
 
     # Linebreaks become spaces
     if lb_is_space
       prt.parts.each{|ec| ec.gsub!(/\n/m, " ")}
-      prt.parts.each{|ec| ec.gsub!(/\n{2,}/m, "\n")} if lbs_style == :truncate
+      clean_text_sps!(prt, sps_style: sps_style, is_debug: is_debug) if sps_style == :truncate
     end
 
     # Ignore spaces between, before, and after Asian characters.
     if delete_asian_space
-      # prt.map_parts do |ea_p| 
-      prt.parts.each do |ea_p| 
+      prt.parts.each do |ea_p|
         PlainText.extend_this(ea_p)
         ea_p.delete_spaces_bw_cjk_european!  # Destructive change in prt.
       end
@@ -322,7 +336,7 @@ module PlainText
   # @see Plaintext.clean_text
   def self.clean_text_line_head_tail!(
         prt,
-        linehead_style: :delete, 
+        linehead_style: :none,
         linetail_style: :delete, 
         is_debug: false
       )
@@ -348,7 +362,7 @@ module PlainText
     when :markdown, :m
       # Two spaces are preserved
       prt.parts.each{|ec| ec.gsub!(/(?:^|(?<![[:blank:]]))[[:blank:]]$/, "")}  # A single space is deleted.
-      prt.parts.each{|ec| ec.gsub!(/[[:blank:]]*  $/, "  ")}  # 3 or more spaces are truncated into 2 spaces, only IF the last two spaces are the ASCII spaces.
+      prt.parts.each{|ec| ec.gsub!(/[[:blank:]]+  $/, "  ")}  # 3 or more spaces are truncated into 2 spaces, only IF the last two spaces are the ASCII spaces.
     when :none, :n
       # Do nothing
     else
@@ -358,36 +372,47 @@ module PlainText
   private_class_method :clean_text_line_head_tail!
 
   # @param prt [PlainText:Part] (see Plaintext.clean_text#prt)
-  # @param firstsps_style [Symbol, String] (see Plaintext.clean_text#firstsps_style)
+  # @param firstlbs_style [Symbol, String] (see Plaintext.clean_text#firstlbs_style)
   # @param lastsps_style [Symbol, String]  (see Plaintext.clean_text#lastsps_style)
   # @return [void]
   #
   # @see Plaintext.clean_text
   def self.clean_text_file_head_tail!(
         prt,
-        firstsps_style: :delete,
+        firstlbs_style: :delete,
         lastsps_style:  :truncate,
         is_debug: false
       )
 
     # Handles the beginning of the given Part.
-    obj = prt.first_significant_element
-    # The first significant element is either Paragraph or Background.  Either way,
-    # the beginning of the next element would not have any [[:space:]].
+    obj = prt.first_significant_element || return
+    # The first significant element is either Paragraph or Background.
+    # obj may be nil.
 
-    case firstsps_style
+    case firstlbs_style
     when String
-      obj.sub!(/\A[[:space:]]*/m, firstsps_style)
+      # This assumes the first Background is not
+      #   (1) containing any non-space characters,
+      #   (2) white-spaces only AND the first Paragraph starts from a linebreak.
+      # You can assume it as long as String is the original input.
+      # However, if the input is Part, anything can be possible, like
+      # first multiple Backgrounds contain a linebreak for each, each of which
+      # follows an empty Paragraph...
+      #  The thing is, if String is always returned, it is much easier
+      # to process after Part#join.  However, the method may return Part.
+      # Therefore, you cannot do it!
+      # I explain it in the document in {self.clean_text}.
+      obj.sub!(/\A([[:space:]]*\n)?/m, firstlbs_style)
     when :truncate, :t
-      # The initial blank lines, if exist, are truncated to a single " "
-      obj.sub!(/\A[[:space:]]+/m, " ")
+      # The initial blank lines, if exist, are truncated to a single "\n"
+      obj.sub!(/\A[[:space:]]*\n/m, "\n")
     when :delete, :d
-      # The initial blank lines and white spaces are deleted.
+      # The initial blank lines are deleted.
       obj.sub!(/\A[[:space:]]*\n/m, "")
     when :none, :n
       # Do nothing
     else
-      raise ArgumentError, "Invalid firstsps_style (#{firstsps_style.inspect}) is specified."
+      raise ArgumentError, "Invalid firstlbs_style (#{firstlbs_style.inspect}) is specified."
     end
 
     # Handles the end of the given Part.
@@ -423,6 +448,43 @@ module PlainText
   private_class_method :clean_text_file_head_tail!
 
 
+  # Handles spaces within Paragraphs
+  #
+  # uses Part to transform a Paragraph into a Part
+  #
+  # @param prt [PlainText:Part] (see Plaintext.clean_text#prt)
+  # @param sps_style (see Plaintext.clean_text#sps_style)
+  # @return [void]
+  #
+  # @see Plaintext.clean_text
+  def self.clean_text_sps!(
+        prt,
+        sps_style: :truncate,
+        is_debug: false
+      )
+
+    prt.parts.each do |e_pa|
+      ru = ParseRule
+      # Each line treated as a Paragraph, and [[:space:]]+ between them as a Boundary.
+      # Then, to work on anything within a line except for line-head/tail is easy.
+      prt_para = Part.parse(e_pa, rule: ParseRule::RuleEachLineStrip).map_parts { |e_li|
+        case sps_style
+        when :truncate, :t
+          e_li.gsub(/[[:blank:]]{2,}/m, " ")
+        when :delete, :d
+          e_li.gsub(/[[:blank:]]+/m, "")
+        when :none, :n
+          e_li
+        else
+          raise ArgumentError
+        end
+      } # map_parts
+      e_pa.replace prt_para.join
+    end
+  end
+  private_class_method :clean_text_sps!
+
+
   ####################################################
   # Instance methods
   ####################################################
@@ -438,6 +500,7 @@ module PlainText
   # @return [Integer]
   def count_char(*rest,
                  lbs_style: :delete,
+                 linehead_style: :delete,
                  lastsps_style: :none,
                  lb_out: "\n",
                  **k)

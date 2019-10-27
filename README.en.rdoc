@@ -169,4 +169,5 @@ None.
 
 Author::  Masa Sakano < info a_t wisebabel dot com >
 Versions:: The versions of this package follow Semantic Versioning (2.0.0) http://semver.org/
+License:: MIT
 

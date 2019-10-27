@@ -152,7 +152,7 @@ It is still in a preliminary state.
 
 ## Install
 
-This script requires {Ruby}[http://www.ruby-lang.org] Version 2.0
+This script requires [Ruby](http://www.ruby-lang.org) Version 2.0
 or above (possibley 2.2 or above?).
 
 As for the command-line script file, it can be put in any of your command-line search
@@ -162,7 +162,7 @@ variable contains the library directory to this gem, which is
     /THIS/GEM/LIBRARY/PATH/plain_text/lib
 
 You may need to modify the first line (Shebang line) of the script to suit your
-environment (it should be unnecessary for Linux and MacOS), or run it
+environment (it should be unnecessary for Linux and macOS), or run it
 explicitly with your Ruby command as
 
     Prompt% /YOUR/ENV/ruby /YOUR/INSTALLED/countchar
@@ -186,9 +186,11 @@ None.
 
 ## Copyright
 
-Author
-:   Masa Sakano < info a_t wisebabel dot com >
-Versions
+*Author*
+:   Masa Sakano < info a_t wisebabel dot com >  
+*Versions*
 :   The versions of this package follow Semantic Versioning (2.0.0)
-    http://semver.org/
+    http://semver.org/  
+*License*
+:   MIT
 

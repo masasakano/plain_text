@@ -77,9 +77,9 @@ class TestUnitPlainText < MiniTest::Test
   def test_clean_text03
     assert_raises(ArgumentError){ PT.clean_text("abc", boundary_style: nil) }
     s1  = "abc  \n  \n  def\n\n"
-    s20 = "abc\n  \ndef\n"
-    s21 = "abcXYZdefXYZ"
-    s22 = "abc\n\ndef\n"
+    s20 = "abc\n  \n  def\n"
+    s21 = "abcXYZ  defXYZ"
+    s22 = "abc\n\n  def\n"
     sr = PT.clean_text(s1, boundary_style: :none)
     assert_equal s20, sr, prerr(s20, sr)
     sr = PT.clean_text(s1, boundary_style: "XYZ")
@@ -105,36 +105,46 @@ class TestUnitPlainText < MiniTest::Test
     assert_equal s22, sr, prerr(s22, sr)
 
     s3  = "\nabc\n\ndef"
-    s41 =  " abc\n\ndefTT"
+    s41 = "\nabc\n\ndefTT"
     s42 = "\nabc\n\ndef"
-    sr = PT.clean_text(s3, firstsps_style: :truncate, lastsps_style: 'TT')
+    sr = PT.clean_text(s3, firstlbs_style: :truncate, lastsps_style: 'TT')
     assert_equal s41, sr, prerr(s41, sr)
-    sr = PT.clean_text(s3, firstsps_style: :none,     lastsps_style: :delete)
+    sr = PT.clean_text(s3, firstlbs_style: :none,     lastsps_style: :delete)
     assert_equal s42, sr, prerr(s42, sr)
   end
 
   def test_clean_text_boundary01
-    assert_raises(ArgumentError){ PT.clean_text("abc", boundary_style: nil) }
     s1  = "\n  ab\n  \ncd\n \n  \n ef\n \n  \n   \n  gh\n \n \n \n"
-    s21 =    " ab\n  \ncd\n \n  \n ef\n \n  \n   \n  gh\n"
+    s21 = "\n  ab\n  \ncd\n \n  \n ef\n \n  \n   \n  gh\n"
     s22 = "\n  ab\n\ncd\n\n ef\n\n  gh\n\n"
-    s23 =  "\n ab\n\ncd\n\n\n ef\n\n\n gh\n\n\n"
-    sr = PT.clean_text(s1, boundary_style: :n,  lastsps_style: :t, linehead_style: :n, firstsps_style: :t, sps_style: :n)
+    s23 = "\n ab\n\ncd\n\n\n ef\n\n\n gh\n\n\n"
+    sr = PT.clean_text(s1, boundary_style: :n,  lastsps_style: :t, linehead_style: :n, firstlbs_style: :t, sps_style: :n)
     assert_equal s21, sr, prerr(s21, sr)
-    sr = PT.clean_text(s1, boundary_style: :t,  lastsps_style: :n, linehead_style: :n, firstsps_style: :n, sps_style: :n)
+    sr = PT.clean_text(s1, boundary_style: :t,  lastsps_style: :n, linehead_style: :n, firstlbs_style: :n, sps_style: :n)
     assert_equal s22, sr, prerr(s22, sr)
-    sr = PT.clean_text(s1, boundary_style: :t2, lastsps_style: :n, linehead_style: :t, firstsps_style: :n, sps_style: :n)
+    sr = PT.clean_text(s1, boundary_style: :t2, lastsps_style: :n, linehead_style: :t, firstlbs_style: :n, sps_style: :n)
     assert_equal s23, sr, prerr(s23, sr)
+  end
+
+  def test_clean_text_markdown01
+    s0  = "\n  ab \n \n   cd  \n \n\n ef   \n \ngh   \t \n\nij \t  \n\nkl   \u3000 \n\nmn"
+    s21 =     "\n  ab\n\n   cd  \n\n ef  \n\ngh   \t \n\nij  \n\nkl   \u3000 \n\nmn"
+    s22 =       "  ab\n\n   cd  \n\n ef  \n\ngh   \t \n\nij  \n\nkl   \u3000 \n\nmn"
+
+    sr = PT.clean_text(s0, linehead_style: :n, linetail_style: :m, firstlbs_style: :none)
+    assert_equal s21, sr, prerr(s21, sr)
+    sr = PT.clean_text(s0, linehead_style: :n, linetail_style: :m, firstlbs_style: :delete)
+    assert_equal s22, sr, prerr(s22, sr)
   end
 
   def test_clean_text_part01
     s0  = "\n  \n abc\n\n \ndef\n\n \n\n"
-    s1  = "TTabc\n\ndef\n"
+    s1  = "TT abc\n\ndef\n"
     p00 = PT::Part.parse s0
     p0  = PT::Part.parse s0
-    sr = PT.clean_text(s0, firstsps_style: 'TT')
+    sr = PT.clean_text(s0, firstlbs_style: 'TT')
     assert_equal s1, sr, prerr(s1, sr)
-    sr = PT.clean_text(p0, firstsps_style: 'TT')
+    sr = PT.clean_text(p0, firstlbs_style: 'TT')
     assert_equal PT::Part, sr.class
     assert_equal s1,  sr.join
     assert_equal p00, p0, prerr(p00, p0)  # p0 is deepcopied?

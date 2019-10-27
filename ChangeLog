@@ -1,4 +1,24 @@
 -----
+(Version: 0.2)
+2019-10-27  Masa Sakano
+  * Plain Text.clean_text
+    * Option name and default changed from `firstsps_style=:truncate` to `firstlbs_style=:delete`
+    * Default of Option `linehead_style` changed from :delete to : none
+    * Option `sps_style` now ignores the line head and tail in a new private class method `clean_text_sps!`
+    * Fixed bugs, including the one for Option choice `linetail_style: :markdown`
+  * New constant ParseRule::RuleEachLineStrip
+
+-----
+(Version: 0.2)
+2019-10-27  Masa Sakano
+  * Plain Text.clean_text
+    * Option name and default changed from `firstsps_style=:truncate` to `firstlbs_style=:delete`
+    * Default of Option `linehead_style` changed from :delete to : none
+    * Option `sps_style` now ignores the line head and tail in a new private class method `clean_text_sps!`
+    * Fixed bugs, including the one for Option choice `linetail_style: :markdown`
+  * New constant ParseRule::RuleEachLineStrip
+
+-----
 (Version: 0.1)
 2019-10-25  Masa Sakano
 
