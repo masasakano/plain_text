@@ -1,4 +1,20 @@
 -----
+(Version: 0.3)
+2019-10-27  Masa Sakano
+  * Added 3 executables textclean, head.rb, tail.rb in bin/ together with their tests
+  * lib/plaintext.rb refactoring
+    * Added a new constant `DEF_METHOD_OPTS`
+  * bin/countchar refactoring
+
+-----
+(Version: 0.3)
+2019-10-27  Masa Sakano
+  * Added 3 executables textclean, head.rb, tail.rb in bin/ together with their tests
+  * lib/plaintext.rb refactoring
+    * Added a new constant `DEF_METHOD_OPTS`
+  * bin/countchar refactoring
+
+-----
 (Version: 0.2)
 2019-10-27  Masa Sakano
   * Plain Text.clean_text

@@ -7,8 +7,9 @@ This module provides utility functions and methods to handle plain
 text.  In the namespace, classes Part/Paragraph/Boundary are defined,
 which represent the logical structure of a document and another class
 ParseRule, which describes the rules to parse plain text to produce a Part-type Ruby instance.
-This package also provides a command-line program to count the number
-of characters, especially useful for documents in Asian (CJK) chatacters.
+This package also provides a few command-line programs, such as counting the number
+of characters (especially useful for documents in Asian (CJK)
+chatacters) and advanced head/tail commands.
 
 The master of this README file, as well as the document for all the methods,
 is found in
@@ -100,7 +101,10 @@ it is applied to each Paragraph and Section separately to split them further.
 standard methods to apply the rules to an object (either String or
 {PlainText::Part}.
 
-## Command-line tool
+## Command-line tools
+
+All the commands here accept `-h` (or `--help`) option to print the
+help message.
 
 ### countchar 
 
@@ -110,11 +114,54 @@ The simplest example to run the command-line script is
 
     countchar YourFile.txt
 
-You may start with
+### textclean
 
-    countchar --help
+Wrapper command of {PlainText.clean_text}.
+Outputs *cleaned* text, such as, truncating more than 3 linebreaks
+into 2.  See the reference of {PlainText.clean_text} for detail.
 
-to see the available options.
+### head.rb
+
+This gives advanced functions, in addition to the standard `head`, including
+
+Regexp:: It can accept Ruby Regexp to determine the boundary (beginning to the first-matched line).
+Character-based:: With `--char` option, it handles the file in units of a chracter, which is especially handy to deal with multi-byte characters like UTF-8.
+Inverse:: It can inverse the counting to ouput everything but initial NUM lines.
+
+A few examples are
+
+    head.rb -n 5 < try.txt
+      # the same as the UNIX head; printing the first 5 lines
+    
+    head.rb -i -n 5 try.txt
+      # printing everything but the first 5 lines
+      # The same as the UNIX command:  tail -n +5
+    
+    head.rb -e '^===+' try.txt
+      # => first line up to the line that begins with more than 3 "="
+    
+    head.rb -x -e '^===+' try.txt
+      # => first line up to the line before what begins with more than 3 "="
+
+The suffix `.rb` is used to distinguish this command from the UNIX-shell standard command.
+
+### tail.rb
+
+This gives advanced functions, in addition to the standard `tail`, including
+
+Regexp:: It can accept Ruby Regexp to determine the boundary (last-matched line to the end).
+Character-based:: With `--char` option, it handles the file in units of a chracter, which is especially handy to deal with multi-byte characters like UTF-8.
+Inverse:: It can inverse the counting to ouput everything but the last NUM lines.
+
+Note the UNIX form of
+
+    tail -n +5
+
+(which I think is a bit counter-intuieive format) is equivalent to
+
+    head.rb -i -n 5
+
+The suffix `.rb` is used to distinguish this command from the UNIX-shell standard command.
 
 ## Miscellaneous
 
@@ -147,8 +194,6 @@ Also, {PlainText::Util} contains some miscellaneous methods.
 ## Description
 
 Work in progress...
-
-It is still in a preliminary state.
 
 ## Install
 

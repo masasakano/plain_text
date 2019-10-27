@@ -11,21 +11,16 @@ __EOF__
 
 # Initialising the hash for the command-line options.
 OPTS = {
-  preserve_paragraph: true,
-  boundary_style: true,
-  lbs_style: :t, # :truncate,
-  lb_is_space: false,
-  sps_style: :truncate,
-  delete_asian_space: true,
-  linehead_style: :delete, 
-  linetail_style: :delete, 
-  firstsps_style: :delete,
-  lastsps_style:  :truncate,
   line_i: nil,
   line_f: nil,
   # :chatter => 3,        # Default
   debug: false,
 }
+
+# Load the default values from the Module
+PlainText::DEF_METHOD_OPTS[:count_char].each_key do |ek|
+  OPTS[ek] ||= PlainText::DEF_METHOD_OPTS[:count_char][ek]
+end
 
 # Function to handle the command-line arguments.
 #
@@ -45,8 +40,9 @@ def handle_argv
 
   opt.parse!(ARGV)
 
+  OPTS[:lbs_style] = OPTS[:lbs_style].to_s[0].to_sym
   unless %i(t d n).include? OPTS[:lbs_style]
-    warn "ERROR: --lbs-style must be one of (t(runcate)|d(elete)|n(one))."; exit 1
+    warn "ERROR: --lbs-style must be one of (t(runcate)|d(elete)|n(one)), but given (#{OPTS[:lbs_style].inspect})"; exit 1
   end
 
   OPTS
@@ -67,20 +63,15 @@ end
 # Handle the command-line options => OPTS
 opts = handle_argv()
 
+valid_keys = PlainText::DEF_METHOD_OPTS[:count_char].keys
+opts.each_key do |ek|
+  opts.delete ek if !valid_keys.include? ek
+end
+
 str = ARGF.read
 
-puts str.count_char(
-       preserve_paragraph: opts[:preserve_paragraph],
-       boundary_style:     opts[:boundary_style],
-       lbs_style:          opts[:lbs_style],
-       lb_is_space:        opts[:lb_is_space],
-       sps_style:          opts[:sps_style],
-       delete_asian_space: opts[:delete_asian_space],
-       linehead_style:     opts[:linehead_style],
-       linetail_style:     opts[:linetail_style],
-       firstsps_style:     opts[:firstsps_style],
-       lastsps_style:      opts[:lastsps_style],
-     )
+puts PlainText.count_char(str, **opts)
+# str.count_char() should be equivalent.
 
 exit
 

@@ -25,6 +25,36 @@ module PlainText
   # Default number of lines to extract for {#head} and {#tail}
   DEF_HEADTAIL_N_LINES = 10
 
+  # Default options for class/instance methods
+  DEF_METHOD_OPTS = {
+    :clean_text => {
+      preserve_paragraph: true,
+      boundary_style: true,  # If unspecified, will be replaced with lb_out * 2
+      lbs_style: :truncate,
+      lb_is_space: false,
+      sps_style: :truncate,
+      delete_asian_space: true,
+      linehead_style: :none,
+      linetail_style: :delete,
+      firstlbs_style: :delete,
+      lastsps_style:  :truncate,
+      lb: $/,
+      lb_out: nil,           # If unspecified, will be replaced with lb
+    },
+    :count_char => {
+      lbs_style: :delete,
+      linehead_style: :delete,
+      lastsps_style: :delete,
+      lb_out: "\n",
+    },
+  }
+
+  # Adjusts DEF_METHOD_OPTS[:count_char]
+  DEF_METHOD_OPTS[:clean_text].each_key do |ek|
+    # %i(preserve_paragraph boundary_style lb_is_space sps_style delete_asian_space linetail_style firstlbs_style lb).each do |ek|
+    DEF_METHOD_OPTS[:count_char][ek] ||= DEF_METHOD_OPTS[:clean_text][ek]
+  end
+
   # Call instance method as a Module function
   #
   # The return String includes {PlainText} as Singleton.
@@ -39,33 +69,39 @@ module PlainText
   end
 
   # If the class of the obj does not "include" this module, do so in the singular class.
-  # 
+  #
   # @param obj [Object] Maybe String. For which a singular class def is run, if the condition is met.
   # @return [TrueClass, NilClass] true if the singular class def is run. Else nil.
   def self.extend_this(obj)
-    return nil if defined? obj.delete_spaces_bw_cjk_european! 
+    return nil if defined? obj.delete_spaces_bw_cjk_european!
     obj.extend(PlainText)
     true
   end
 
-  # Module function of {#count_char}
+  # Count the number of characters
+  #
+  # See {PlainText#clean_text!} for the optional parameters.  The defaults of a few of the optional parameters are different from it,
+  # such as the default for +lb_out+ is +"\n"+ (newline, so that a line-break is 1 byte in size).
+  # It is so that this method is more optimized for East-Asian (CJK) characters, given this method is most useful for CJK Strings,
+  # whereas, for European alphabets, counting the number of words, rather than characters as in this method, would be more standard.
   #
   # @param instr [String] String for which the number of chars is counted
   # @param (see #count_char)
   # @return [Integer]
   def self.count_char(instr, *rest,
-                 lbs_style: :delete,
-                 linehead_style: :delete,
-                 lastsps_style: :delete,
-                 lb_out: "\n",
-                 **k)
-    clean_text(instr, *rest, lbs_style: lbs_style, lastsps_style: lastsps_style, lb_out: lb_out, **k).size
+        lbs_style:      DEF_METHOD_OPTS[:count_char][:lbs_style],
+        linehead_style: DEF_METHOD_OPTS[:count_char][:linehead_style],
+        lastsps_style:  DEF_METHOD_OPTS[:count_char][:lastsps_style],
+        lb_out:         DEF_METHOD_OPTS[:count_char][:lb_out],
+        **k
+      )
+    clean_text(instr, *rest, lbs_style: lbs_style, linehead_style: linehead_style, lastsps_style: lastsps_style, lb_out: lb_out, **k).size
   end
 
 
   # Cleans the text
   #
-  # Such as, removing extra spaces, normalising the linebreaks, etc. 
+  # Such as, removing extra spaces, normalising the linebreaks, etc.
   #
   # In default,
   #
@@ -77,9 +113,9 @@ module PlainText
   # * Trailing white spaces in each line are deleted: +linetail_style=:delete+
   # * Line-breaks at the beginning of the entire input string are deleted: +firstlbs_style=:delete+
   # * Trailing white spaces and line-breaks at the end of the entire input string are truncated into a single linebreak: +lastsps_style=:truncate+
-  # 
+  #
   # For a String with predominantly CJK characters, the following setting is recommended:
-  # 
+  #
   # * +lbs_style: :delete+
   # * +delete_asian_space: true+ (Default)
   #
@@ -111,26 +147,26 @@ module PlainText
   #
   def self.clean_text(
         prt,
-        preserve_paragraph: true,
-        boundary_style: true,  # If unspecified, will be replaced with lb_out * 2
-        lbs_style: :truncate,
-        lb_is_space: false,
-        sps_style: :truncate,
-        delete_asian_space: true,
-        linehead_style: :none,
-        linetail_style: :delete, 
-        firstlbs_style: :delete,
-        lastsps_style:  :truncate,
-        lb: $/,
-        lb_out: nil,           # If unspecified, will be replaced with lb
+        preserve_paragraph: DEF_METHOD_OPTS[:clean_text][:preserve_paragraph],
+        boundary_style:     DEF_METHOD_OPTS[:clean_text][:boundary_style], # If unspecified, will be replaced with lb_out * 2
+        lbs_style:      DEF_METHOD_OPTS[:clean_text][:lbs_style],
+        lb_is_space:    DEF_METHOD_OPTS[:clean_text][:lb_is_space],
+        sps_style:      DEF_METHOD_OPTS[:clean_text][:sps_style],
+        delete_asian_space: DEF_METHOD_OPTS[:clean_text][:delete_asian_space],
+        linehead_style: DEF_METHOD_OPTS[:clean_text][:linehead_style],
+        linetail_style: DEF_METHOD_OPTS[:clean_text][:linetail_style],
+        firstlbs_style: DEF_METHOD_OPTS[:clean_text][:firstlbs_style],
+        lastsps_style:  DEF_METHOD_OPTS[:clean_text][:lastsps_style],
+        lb:     DEF_METHOD_OPTS[:clean_text][:lb],
+        lb_out: DEF_METHOD_OPTS[:clean_text][:lb_out], # If unspecified, will be replaced with lb
         is_debug: false
       )
 
-isdebug = true if prt == "\n  \n abc\n\n \ndef\n\n \n\n"
+#isdebug = true if prt == "foo\n\n\nbar\n"
     lb_out ||= lb  # Output linebreak
     boundary_style = lb_out*2 if true       == boundary_style
     boundary_style = ""       if [:delete, :d].include? boundary_style
-    lastsps_style  = lb_out   if :linebreak == lastsps_style 
+    lastsps_style  = lb_out   if :linebreak == lastsps_style
 
     if !prt.class.method_defined? :last_significant_element
       # Construct a Part instance from the given String.
@@ -172,7 +208,7 @@ isdebug = true if prt == "\n  \n abc\n\n \ndef\n\n \n\n"
     clean_text_file_head_tail!( prt,
       firstlbs_style: firstlbs_style,
       lastsps_style:  lastsps_style,
-      is_debug: isdebug
+      is_debug: is_debug
     )
 
     # Replaces the linebreaks to the specified one
@@ -254,13 +290,13 @@ isdebug = true if prt == "\n  \n abc\n\n \ndef\n\n \n\n"
   # Class methods (Private)
   ##########
 
-  # @param prt [PlainText:Part] (see Plaintext.clean_text#prt)
-  # @param boundary_style (see Plaintext.clean_text#boundary_style)
+  # @param prt [PlainText:Part] (see PlainText.clean_text)
+  # @param boundary_style (see PlainText.clean_text)
   # @return [void]
   #
-  # @see Plaintext.clean_text
+  # @see PlainText.clean_text
   def self.clean_text_boundary!( prt,
-        boundary_style: $/*2,
+        boundary_style: ,
         is_debug: false
       )
 
@@ -280,20 +316,20 @@ isdebug = true if prt == "\n  \n abc\n\n \ndef\n\n \n\n"
   end # self.clean_text_boundary!
   private_class_method :clean_text_boundary!
 
-  # @param prt [PlainText:Part] (see Plaintext.clean_text#prt)
-  # @param lbs_style (see Plaintext.clean_text#lbs_style)
-  # @param sps_style (see Plaintext.clean_text#sps_style)
-  # @param lb_is_space (see Plaintext.clean_text#lb_is_space)
-  # @param delete_asian_space (see Plaintext.clean_text#delete_asian_space)
+  # @param prt [PlainText:Part] (see PlainText.clean_text)
+  # @param lbs_style (see PlainText.clean_text)
+  # @param sps_style (see PlainText.clean_text)
+  # @param lb_is_space (see PlainText.clean_text)
+  # @param delete_asian_space (see PlainText.clean_text)
   # @return [void]
   #
-  # @see Plaintext.clean_text
+  # @see PlainText.clean_text
   def self.clean_text_lbs_sps!(
         prt,
-        lbs_style: :truncate,
-        lb_is_space: false,
-        sps_style: :truncate,
-        delete_asian_space: true,
+        lbs_style:          ,
+        lb_is_space:        ,
+        sps_style:          ,
+        delete_asian_space: ,
         is_debug: false
       )
 
@@ -328,16 +364,16 @@ isdebug = true if prt == "\n  \n abc\n\n \ndef\n\n \n\n"
   end # self.clean_text_lbs_sps!
   private_class_method :clean_text_lbs_sps!
 
-  # @param prt [PlainText:Part] (see Plaintext.clean_text#prt)
-  # @param linehead_style [Symbol, String] (see Plaintext.clean_text#linehead_style)
-  # @param linetail_style [Symbol, String] (see Plaintext.clean_text#linetail_style)
+  # @param prt [PlainText:Part] (see PlainText.clean_text)
+  # @param linehead_style [Symbol, String] (see PlainText.clean_text)
+  # @param linetail_style [Symbol, String] (see PlainText.clean_text)
   # @return [void]
   #
-  # @see Plaintext.clean_text
+  # @see PlainText.clean_text
   def self.clean_text_line_head_tail!(
         prt,
-        linehead_style: :none,
-        linetail_style: :delete, 
+        linehead_style: ,
+        linetail_style: ,
         is_debug: false
       )
 
@@ -371,16 +407,16 @@ isdebug = true if prt == "\n  \n abc\n\n \ndef\n\n \n\n"
   end # self.clean_text_line_head_tail!
   private_class_method :clean_text_line_head_tail!
 
-  # @param prt [PlainText:Part] (see Plaintext.clean_text#prt)
-  # @param firstlbs_style [Symbol, String] (see Plaintext.clean_text#firstlbs_style)
-  # @param lastsps_style [Symbol, String]  (see Plaintext.clean_text#lastsps_style)
+  # @param prt [PlainText:Part] (see PlainText.clean_text#prt)
+  # @param firstlbs_style [Symbol, String] (see PlainText.clean_text#firstlbs_style)
+  # @param lastsps_style [Symbol, String]  (see PlainText.clean_text#lastsps_style)
   # @return [void]
   #
-  # @see Plaintext.clean_text
+  # @see PlainText.clean_text
   def self.clean_text_file_head_tail!(
         prt,
-        firstlbs_style: :delete,
-        lastsps_style:  :truncate,
+        firstlbs_style: ,
+        lastsps_style:  ,
         is_debug: false
       )
 
@@ -452,19 +488,18 @@ isdebug = true if prt == "\n  \n abc\n\n \ndef\n\n \n\n"
   #
   # uses Part to transform a Paragraph into a Part
   #
-  # @param prt [PlainText:Part] (see Plaintext.clean_text#prt)
-  # @param sps_style (see Plaintext.clean_text#sps_style)
+  # @param prt [PlainText:Part] (see PlainText.clean_text)
+  # @param sps_style (see PlainText.clean_text)
   # @return [void]
   #
-  # @see Plaintext.clean_text
+  # @see PlainText.clean_text
   def self.clean_text_sps!(
         prt,
-        sps_style: :truncate,
+        sps_style: ,
         is_debug: false
       )
 
     prt.parts.each do |e_pa|
-      ru = ParseRule
       # Each line treated as a Paragraph, and [[:space:]]+ between them as a Boundary.
       # Then, to work on anything within a line except for line-head/tail is easy.
       prt_para = Part.parse(e_pa, rule: ParseRule::RuleEachLineStrip).map_parts { |e_li|
@@ -490,21 +525,16 @@ isdebug = true if prt == "\n  \n abc\n\n \ndef\n\n \n\n"
   ####################################################
 
   # Count the number of characters
-  # 
-  # See {PlainText#clean_text!} for the optional parameters.  The defaults of a few of the optional parameters are different from {PlainText#clean_text!},
-  # such as the default for +lb_out+ is "\n" (so that a line-break is 1 byte in size).
+  #
+  # See {PlainText.count_char} and further {PlainText.clean_text!} for the optional parameters.  The defaults of a few of the optional parameters are different from the latter,
+  # such as the default for +lb_out+ is +"\n"+ (newline, so that a line-break is 1 byte in size).
   # It is so that this method is more optimized for East-Asian (CJK) characters, given this method is most useful for CJK Strings,
   # whereas, for European alphabets, counting the number of words, rather than characters as in this method, would be more standard.
   #
-  # @param (see PlainText#clean_text!)
+  # @param (see {PlainText.count_char})
   # @return [Integer]
-  def count_char(*rest,
-                 lbs_style: :delete,
-                 linehead_style: :delete,
-                 lastsps_style: :none,
-                 lb_out: "\n",
-                 **k)
-    PlainText.clean_text(self, *rest, lbs_style: lbs_style, lastsps_style: lastsps_style, lb_out: lb_out, **k).size
+  def count_char(*rest, **k)
+    PlainText.public_send(__method__, self, *rest, **k)
   end
 
   # Delete all the spaces between CJK and European characters or numbers.
@@ -732,7 +762,7 @@ isdebug = true if prt == "\n  \n abc\n\n \ndef\n\n \n\n"
   # till the last one is returned.  "The next line" means (1) the line immediately after the match
   # if the matched string has the linebreak at the end, or (2) the line after the first linebreak after the matched string,
   # where the trailing characters after the matched string to the linebreak (inclusive) is ignored.
-  # 
+  #
   # = Tips =
   # To specify the *last* line that matches the Regexp, consider prefixing +(?:.*)+ with the option +m+,
   # e.g., +/(?:.*)ABC/m+

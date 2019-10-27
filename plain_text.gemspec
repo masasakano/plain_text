@@ -5,9 +5,9 @@ require 'date'
 
 Gem::Specification.new do |s|
   s.name = %q{plain_text}.sub(/.*/){|c| (c == File.basename(Dir.pwd)) ? c : raise("ERROR: s.name=(#{c}) in gemspec seems wrong!")}
-  s.version = "0.2"
+  s.version = "0.3"
   # s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  %w(countchar).each do |f|
+  %w(countchar textclean head.rb tail.rb).each do |f|
     path = s.bindir+'/'+f
     File.executable?(path) ? s.executables << f : raise("ERROR: Executable (#{path}) is not executable!")
   end

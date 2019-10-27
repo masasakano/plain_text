@@ -1,0 +1,103 @@
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
+require 'optparse'
+require 'plain_text'
+
+BANNER = <<"__EOF__"
+USAGE: #{File.basename($0)} [options] [INFILE.txt] < STDIN
+  Clean the text file INFILE (or STDIN), unifying linebreaks, and outputs it.
+__EOF__
+
+# Initialising the hash for the command-line options.
+OPTS = {
+  line_i: nil,
+  line_f: nil,
+  # :chatter => 3,        # Default
+  debug: false,
+}
+
+# Load the default values from the Module
+PlainText::DEF_METHOD_OPTS[:clean_text].each_key do |ek|
+  OPTS[ek] ||= PlainText::DEF_METHOD_OPTS[:clean_text][ek]
+end
+
+# Function to handle the command-line arguments.
+#
+# ARGV will be modified, and the constant variable OPTS is set.
+#
+# @return [Hash]  Optional-argument hash.
+#
+def handle_argv
+  opt = OptionParser.new(BANNER)
+  opt.on(  '--[no-]preserve_paragraph', sprintf("Preserved paragraph structures? (Def: %s)", OPTS[:preserve_paragraph].inspect), TrueClass) {|v| OPTS[:preserve_paragraph] = v}
+  opt.on(  '--boundary-style=STYLE', sprintf("One of (t(runcate)(2)|d(elete)|n(one)) (Def: truncate).")) { |v| OPTS[:boundary_style]=v.strip }
+  opt.on(  '--lbs-style=STYLE', sprintf("One of (t(runcate)|d(elete)|n(one)) (Def: %s).", OPTS[:lbs_style])) { |v| OPTS[:lbs_style]=v.strip }
+  opt.on(  '--[no-]lb-is-space', sprintf("Linebraeks are equivalent to spaces? (Def: %s)", OPTS[:lb_is_space].inspect), TrueClass) {|v| OPTS[:lb_is_space] = v}
+  opt.on(  '--sps-style=STYLE', sprintf("One of (t(runcate)|d(elete)|n(one)) (Def: %s).", OPTS[:sps_style])) { |v| OPTS[:sps_style]=v.strip }
+  opt.on(  '--[no-]delete-asian-space', sprintf("Deletes spaces between, before or after a CJK character? (Def: %s)", OPTS[:delete_asian_space].inspect), TrueClass) {|v| OPTS[:delete_asian_space] = v}
+  opt.on(  '--linehead-style=STYLE', sprintf("One of (t(runcate)|d(elete)|n(one)) (Def: %s).", OPTS[:linehead_style])) { |v| OPTS[:linehead_style]=v.strip }
+  opt.on(  '--linetail-style=STYLE', sprintf("One of (t(runcate)|d(elete)|n(one)) (Def: %s).", OPTS[:linetail_style])) { |v| OPTS[:linetail_style]=v.strip }
+  opt.on(  '--firstlbs-style=STYLE', sprintf("One of (t(runcate)|d(elete)|n(one)) (Def: %s).", OPTS[:firstlbs_style])) { |v| OPTS[:firstlbs_style]=v.strip }
+  opt.on(  '--lastsps-style=STYLE', sprintf("One of (t(runcate)|d(elete)|n(one)|m(arkdown)) (Def: %s).", OPTS[:lastsps_style])) { |v| OPTS[:lastsps_style]=v.strip }
+  # opt.on(  '--version', "Display the version and exits.", TrueClass) {|v| OPTS[:version] = v}  # Consider opts.on_tail
+  opt.on(  '--[no-]debug', "Debug (Def: false)", TrueClass) {|v| OPTS[:debug] = v}
+  # opt.separator ""        # Way to control a help message.
+  # opt.separator "Note:"
+  # opt.separator " Spaces are truncated in default."
+
+  opt.parse!(ARGV)
+
+  if (OPTS[:boundary_style].class.method_defined?(:to_str) && 
+      /\A(t(runcate)?(2)?|d(elete)?|n(one)?)\z/ =~ OPTS[:boundary_style])
+    OPTS[:boundary_style] = OPTS[:boundary_style].to_sym
+  end
+
+  %w(lbs sps linehead linetail firstlbs lastsps).each do |ek_head|
+    sym_k = (ek_head+"_style").to_sym
+    trysym = OPTS[sym_k].to_s[0].to_sym  # Symbol of 1 character (nb., NOT boundary_style)
+    if  (!(%i(t d n).include? trysym)   && (sym_k != :lastsps_style) ||
+         !(%i(t d n m).include? trysym) && (sym_k == :lastsps_style))
+      errmsg = sprintf(
+        "ERROR: --%s-style must be one of (t(runcate)|d(elete)%s|n(one)), but given %s.",
+        ek_head,
+        ((ek_head == "lastsps") ? "|m(arkdown)" : ""),
+        OPTS[sym_k].inspect
+      )
+      warn errmsg
+      exit 1
+    end
+    OPTS[sym_k] = trysym
+  end
+
+  OPTS
+end
+
+
+################################################
+# MAIN
+################################################
+
+$stdout.sync=true
+$stderr.sync=true
+
+class String
+  include PlainText
+end
+
+# Handle the command-line options => OPTS
+opts = handle_argv()
+
+valid_keys = PlainText::DEF_METHOD_OPTS[:clean_text].keys
+opts.each_key do |ek|
+  opts.delete ek if !valid_keys.include? ek
+end
+
+str = ARGF.read
+
+print PlainText.clean_text(str, **opts)
+
+exit
+
+__END__
+
