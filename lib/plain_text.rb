@@ -303,7 +303,7 @@ module PlainText
     # Boundary
     case boundary_style
     when String
-      prt.each_boundaries_with_index{|ec, i| ((i == prt.size - 1) && ec.empty?) ? ec : ec.replace(boundary_style)}
+      prt.each_boundary_with_index{|ec, i| ((i == prt.size - 1) && ec.empty?) ? ec : ec.replace(boundary_style)}
     when :truncate,  :t
       prt.boundaries.each{|ec| ec.gsub!(/[[:blank:]]+/m, ""); ec.gsub!(/\n+{3,}/m, "\n\n")}
     when :truncate2, :t2
@@ -502,7 +502,7 @@ module PlainText
     prt.parts.each do |e_pa|
       # Each line treated as a Paragraph, and [[:space:]]+ between them as a Boundary.
       # Then, to work on anything within a line except for line-head/tail is easy.
-      prt_para = Part.parse(e_pa, rule: ParseRule::RuleEachLineStrip).map_parts { |e_li|
+      prt_para = Part.parse(e_pa, rule: ParseRule::RuleEachLineStrip).map_part { |e_li|
         case sps_style
         when :truncate, :t
           e_li.gsub(/[[:blank:]]{2,}/m, " ")
@@ -513,7 +513,7 @@ module PlainText
         else
           raise ArgumentError
         end
-      } # map_parts
+      } # map_part
       e_pa.replace prt_para.join
     end
   end

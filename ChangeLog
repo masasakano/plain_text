@@ -1,4 +1,9 @@
 -----
+(Version: 0.4)
+2019-10-29  Masa Sakano
+  * Changed the names in PlainText::Part.(map|each)_boundaries_* to boundary, and similarly parts to part
+
+-----
 (Version: 0.3)
 2019-10-27  Masa Sakano
   * Added 3 executables textclean, head.rb, tail.rb in bin/ together with their tests

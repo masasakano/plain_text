@@ -124,9 +124,12 @@ into 2.  See the reference of {PlainText.clean_text} for detail.
 
 This gives advanced functions, in addition to the standard `head`, including
 
-Regexp:: It can accept Ruby Regexp to determine the boundary (beginning to the first-matched line).
-Character-based:: With `--char` option, it handles the file in units of a chracter, which is especially handy to deal with multi-byte characters like UTF-8.
-Inverse:: It can inverse the counting to ouput everything but initial NUM lines.
+**Regexp**
+:  It can accept Ruby Regexp to determine the boundary (beginning to the first-matched line).
+**Character-based**
+:  With `--char` option, it handles the file in units of a chracter, which is especially handy to deal with multi-byte characters like UTF-8.
+**Inverse**
+:  It can inverse the counting to ouput everything but initial NUM lines.
 
 A few examples are
 
@@ -149,9 +152,12 @@ The suffix `.rb` is used to distinguish this command from the UNIX-shell standar
 
 This gives advanced functions, in addition to the standard `tail`, including
 
-Regexp:: It can accept Ruby Regexp to determine the boundary (last-matched line to the end).
-Character-based:: With `--char` option, it handles the file in units of a chracter, which is especially handy to deal with multi-byte characters like UTF-8.
-Inverse:: It can inverse the counting to ouput everything but the last NUM lines.
+**Regexp**
+:  It can accept Ruby Regexp to determine the boundary (last-matched line to the end).
+**Character-based**
+:  With `--char` option, it handles the file in units of a chracter, which is especially handy to deal with multi-byte characters like UTF-8.
+**Inverse**
+:  It can inverse the counting to ouput everything but the last NUM lines.
 
 Note the UNIX form of
 

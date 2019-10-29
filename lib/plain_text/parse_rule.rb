@@ -280,7 +280,7 @@ module PlainText
     # Set (or reset) a human-readable name for {#rules} at a specified index
     #
     # @param name [NilClass, #to_s] nil to reset or a human-readable name, usually either String or Symbol
-    # @param index [Integer] Index for {#rules}. A negative index is allowed.
+    # @param index_rules [Integer] Index for {#rules}. A negative index is allowed.
     # @return [Integer] Non-negative index where name is set; i.e., if index=-1 is specified for {#rules} with a size of 3, the returned value is 2 (the last index of it).
     def set_name_at(name, index_rules)
       index = PlainText::Util.positive_array_index_checked(index_rules, @rules, accept_too_big: false, varname: 'rules')

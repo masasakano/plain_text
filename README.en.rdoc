@@ -29,7 +29,7 @@ which is the heart to describe the logical structure of documents.
 It is basically a container class and indeed a sub-class of Array. It
 can contain either of another {PlainText::Part} or more basic
 components of either of {PlainText::Part::Paragraph} and
-{PlainText::Part::Boundary}, both of which are sub-classes of String. 
+{PlainText::Part::Boundary}, both of which are sub-classes of String.
 
 An example instance looks like this:
 
@@ -63,7 +63,7 @@ where the name of subclasses (or constants) here arbitrary, except for
 {PlainText::Part::Paragraph::Empty} and
 {PlainText::Part::Boundary::Empty}, which are pre-defined. Users can
 define their own subclasses to help organize the logical structure at
-their will. 
+their will.
 
 Basically, at every layer, every {PlainText::Part} or
 {PlainText::Part::Paragraph} is sandwiched by
@@ -75,7 +75,7 @@ String instance any time.
 === PlainText::ParseRule - Class to describe the rule of how to parse
 
 {PlainText::ParseRule} is the class to describe how to parse initially
-String, and subsequently {PlainText::Part}, which is basically an Array. 
+String, and subsequently {PlainText::Part}, which is basically an Array.
 {PlainText::ParseRule} is a container class and holds a set of ordered
 rules, each of which is either Proc or Regexp as a more simple rule.
 A rule, Proc, is defined by a user and is designed to receive either

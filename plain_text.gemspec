@@ -5,7 +5,7 @@ require 'date'
 
 Gem::Specification.new do |s|
   s.name = %q{plain_text}.sub(/.*/){|c| (c == File.basename(Dir.pwd)) ? c : raise("ERROR: s.name=(#{c}) in gemspec seems wrong!")}
-  s.version = "0.3"
+  s.version = "0.4"
   # s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   %w(countchar textclean head.rb tail.rb).each do |f|
     path = s.bindir+'/'+f
@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   end
   s.bindir = 'bin'
   s.authors = ["Masa Sakano"]
-  s.date = %q{2019-10-27}.sub(/.*/){|c| (Date.parse(c) == Date.today) ? c : raise("ERROR: s.date=(#{c}) is not today!")}
+  s.date = %q{2019-10-29}.sub(/.*/){|c| (Date.parse(c) == Date.today) ? c : raise("ERROR: s.date=(#{c}) is not today!")}
   s.summary = %q{Module to handle Plain-Text}
   s.description = %q{This module provides utility functions and methods to handle plain text, classes Part/Paragraph/Boundary to represent the logical structure of a document and ParseRule to describe the rules to parse plain text to produce a Part-type Ruby instance.}
   # s.email = %q{abc@example.com}

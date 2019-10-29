@@ -160,10 +160,10 @@ module PlainText
     # The indices provided in this method are for the main Array,
     # and hence different from {#boundaries}.each_with_index
     #
-    # @param (see #map_boundaries_with_index)
+    # @param (see #map_boundary_with_index)
     # @return as self
-    def each_boundaries_with_index(**kwd, &bl)
-      map_boundaries_core(map: false, with_index: true, **kwd, &bl)
+    def each_boundary_with_index(**kwd, &bl)
+      map_boundary_core(map: false, with_index: true, **kwd, &bl)
     end
 
     # each method for parts only, providing also the index (always an even number) to the block.
@@ -176,10 +176,10 @@ module PlainText
     # The indices provided in this method are for the main Array,
     # and hence different from {#parts}.each_with_index
     #
-    # @param (see #map_parts_with_index)
+    # @param (see #map_part_with_index)
     # @return as self
-    def each_parts_with_index(**kwd, &bl)
-      map_parts_core(map: false, with_index: false, **kwd, &bl)
+    def each_part_with_index(**kwd, &bl)
+      map_part_core(map: false, with_index: false, **kwd, &bl)
     end
 
     # The first significant (=non-empty) element.
@@ -248,16 +248,16 @@ module PlainText
     # @option recursive: [Boolean] if true (Default), map is performed recursively.
     # @return as self
     # @see #initialize for the other options (:compact and :compacter)
-    def map_boundaries(**kwd, &bl)
-      map_boundaries_core(with_index: false, **kwd, &bl)
+    def map_boundary(**kwd, &bl)
+      map_boundary_core(with_index: false, **kwd, &bl)
     end
 
     # map method for boundaries only, providing also the index (always an odd number) to the block, returning a copied self.
     #
-    # @param (see #map_boundaries)
+    # @param (see #map_boundary)
     # @return as self
-    def map_boundaries_with_index(**kwd, &bl)
-      map_boundaries_core(with_index: true, **kwd, &bl)
+    def map_boundary_with_index(**kwd, &bl)
+      map_boundary_core(with_index: true, **kwd, &bl)
     end
 
     # map method for parts only, returning a copied self.
@@ -271,16 +271,16 @@ module PlainText
     # @option recursive: [Boolean] if true (Default), map is performed recursively.
     # @return as self
     # @see #initialize for the other options (:compact and :compacter)
-    def map_parts(**kwd, &bl)
-      map_parts_core(with_index: false, **kwd, &bl)
+    def map_part(**kwd, &bl)
+      map_part_core(with_index: false, **kwd, &bl)
     end
 
     # map method for parts only, providing also the index (always an even number) to the block, returning a copied self.
     #
-    # @param (see #map_parts)
+    # @param (see #map_part)
     # @return as self
-    def map_parts_with_index(**kwd, &bl)
-      map_parts_core(with_index: false, **kwd, &bl)
+    def map_part_with_index(**kwd, &bl)
+      map_part_core(with_index: false, **kwd, &bl)
     end
 
     # Normalize the content, making sure it has an even number of elements
@@ -387,7 +387,7 @@ module PlainText
     def squash_boundary_at!(index)
       (i_pos = get_valid_ipos_for_boundary(index)) || return
       prt = self[i_pos-1]
-      m = :emptify_last_boundaries!
+      m = :emptify_last_boundary!
       self[i_pos] << prt.public_send(m) if prt.class.method_defined? m
       self[i_pos]
     end
@@ -397,7 +397,7 @@ module PlainText
     #
     # @return [self]
     def squash_boundaryies!
-      each_boundaries_with_index do |ec, i|
+      each_boundary_with_index do |ec, i|
         squash_boundary_at!(i)
       end
       self
@@ -628,7 +628,7 @@ module PlainText
       ret = super
 
       # The result may not be in an even number anymore.  Correct it.
-      push Boundary.new("") if size.odd?
+      Boundary.insert_original_b4_part(size, "") if size.odd?
 
       # Original method may fill some part of the array with String or even nil.  
       normalize!
@@ -772,7 +772,7 @@ module PlainText
     # Emptifies all the Boundaries immediately before the index and squashes it to the one at it.
     #
     # @return [Boundary] all the descendants' last Boundaries merged.
-    def emptify_last_boundaries!
+    def emptify_last_boundary!
       return Boundary::Empty.dup if size == 0
       ret = ""
       ret << prt.public_send(__method__) if prt.class.method_defined? __method__
@@ -780,7 +780,7 @@ module PlainText
       self[-1] = Boundary::Empty.dup
       ret
     end
-    private :emptify_last_boundaries!
+    private :emptify_last_boundary!
 
 
     # Returns a positive Integer index guaranteed to be 1 or greater and smaller than the size.
@@ -795,13 +795,13 @@ module PlainText
     private :get_valid_ipos_for_boundary
 
 
-    # Core routine for {#map_boundaries} and similar.
+    # Core routine for {#map_boundary} and similar.
     #
     # @option map opts: [Boolean] if true (Default), map is performed. Else just each.
     # @option with_index: [Boolean] if true (Default: false), yield with also index
     # @option recursive: [Boolean] if true (Default), map is performed recursively.
     # @return as self if map: is true, else void
-    def map_boundaries_core(map: true, with_index: false, recursive: true, **kwd, &bl)
+    def map_boundary_core(map: true, with_index: false, recursive: true, **kwd, &bl)
       ind = -1
       arnew = map{ |ec|
         ind += 1
@@ -815,16 +815,16 @@ module PlainText
       }
       self.class.new arnew, recursive: recursive, **kwd if map
     end
-    private :map_boundaries_core
+    private :map_boundary_core
 
-    # Core routine for {#map_parts}
+    # Core routine for {#map_part}
     #
     # @option map: [Boolean] if true (Default), map is performed. Else just each.
     # @option with_index: [Boolean] if true (Default: false), yield with also index
     # @option recursive: [Boolean] if true (Default), map is performed recursively.
     # @return as self
     # @see #initialize for the other options (:compact and :compacter)
-    def map_parts_core(map: true, with_index: false, recursive: true, **kwd, &bl)
+    def map_part_core(map: true, with_index: false, recursive: true, **kwd, &bl)
       ind = -1
       new_parts = parts.map{ |ec|
         ind += 1
@@ -836,7 +836,7 @@ module PlainText
       }
       self.class.new new_parts, boundaries, recursive: recursive, **kwd if map
     end
-    private :map_parts_core
+    private :map_part_core
 
     # Core routine for {#normalize!} and {#normalize}
     #
