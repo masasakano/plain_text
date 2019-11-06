@@ -591,7 +591,7 @@ module PlainText
   # @param inclusive: [Boolean] read only when unit is :line. If inclusive (Default), the (entire) line that matches is included in the result.
   # @param linebreak: [String] +\n+ etc (Default: +$/+), used when +unit==:line+ (Default)
   # @return [String] as self
-  def head(num_in=DEF_HEADTAIL_N_LINES, unit: :line, inclusive: true, linebreak: $/)
+  def head(num_in=DEF_HEADTAIL_N_LINES, unit: :line, ignore_case: false, inclusive: true, multi_line: false, linebreak: $/)
     if num_in.class.method_defined? :to_int
       num = num_in.to_int
       raise ArgumentError, "Non-positive num (#{num_in}) is given in #{__method__}" if num.to_int < 1
@@ -779,7 +779,7 @@ module PlainText
   # @param inclusive: [Boolean] read only when unit is :line. If inclusive (Default), the (entire) line that matches is included in the result.
   # @param linebreak: [String] +\n+ etc (Default: +$/+), used when unit==:line (Default)
   # @return [String] as self
-  def tail(num_in=DEF_HEADTAIL_N_LINES, unit: :line, inclusive: true, linebreak: $/)
+  def tail(num_in=DEF_HEADTAIL_N_LINES, unit: :line, ignore_case: false, inclusive: true, multi_line: false, linebreak: $/)
     if num_in.class.method_defined? :to_int
       num = num_in.to_int
       raise ArgumentError, "num of zero is given in #{__method__}" if num == 0

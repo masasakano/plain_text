@@ -1,5 +1,12 @@
 -----
 2019-11-06  Masa Sakano
+  * head.rb, tail.rb
+    * "-i|--[no]-inverse" command-line option renamed to "-r|--[no-]reverse"
+    * "-i|--[no-]ignore-case" option added.
+    * "-m|--[no-]multi-line" option added.
+
+-----
+2019-11-06  Masa Sakano
   * PlainText::Util (`plain_text/util.rb`)
     * All the methods are now private.
     * New dedicated test code file: `lib/plain_text/util.rb`
