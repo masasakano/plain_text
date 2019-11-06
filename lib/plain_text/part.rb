@@ -81,6 +81,7 @@ module PlainText
       even_num: 'even number of elements must be specified.',
       use_to_a: 'To handle it as an Array, use to_a first.',
     }
+    private_constant :ERR_MSGS
 
     # @param arin [Array] of [Paragraph1, Boundary1, Para2, Bd2, ...] or Part/Paragraph if boundaries is given
     # @param boundaries [Array] of Boundary
@@ -282,6 +283,108 @@ module PlainText
     def map_part_with_index(**kwd, &bl)
       map_part_core(with_index: false, **kwd, &bl)
     end
+
+    # merge parts/paragraphs if they satisfy the conditions.
+    #
+    # A group of two Parts/Paragraphs and the Boundaries in between and before and after
+    # is passed to the block consecutively.
+    #
+    # @yield [ary, b1, b2, i] Returns true if the two paragraphs should be merged.
+    # @yieldparam [Array] ary of [Para1st, BoundaryBetween, Para2nd]
+    # @yieldparam [Boundary] b1 Boundary-String before the first part/paragraph (nil for the first one)
+    # @yieldparam [Boundary] b2 Boundary-String after the second part/paragraph
+    # @yieldparam [Integer] i Index of the first Para
+    # @yieldreturn [Boolean, Symbol] True if they should be merged.  :abort if cancel it.
+    # @return [self, false] false if no pairs of parts/paragraphs are merged, else self.
+    def merge_para_if()
+      arind2del = []  # Indices to delete (both paras and boundaries)
+      each_index do |ei|
+        break if ei >= size - 3  # 2nd last paragraph or later.
+        next if !index_para?(ei, skip_check: true)
+        ar1st = self.to_a[ei..ei+2]
+        ar2nd = ((ei==0) ? nil : self[ei-1])
+        do_merge = yield(ar1st, ar2nd, self[ei+3], ei)
+        return false                 if do_merge == :abort
+        arind2del.push ei, ei+1, ei+2 if do_merge 
+      end
+
+      return false if arind2del.empty? 
+      arind2del.uniq!
+
+      (arind2ranges arind2del).reverse.each do |er|
+        merge_para!(er)
+      end
+      return self
+    end
+
+    # merge multiple paragraphs
+    #
+    # The boundaries between them are simply joined as String as they are.
+    #
+    # @overload set(index1, index2, *rest)
+    #   With a list of indices.  Unless use_para_index is true, this means the main Array index. Namely, if Part is [P0, B0, P1, B1, P2, B2, B3] and if you want to merge P1 and P2, you specify as (2,3,4) or (2,4).  If use_para_index is true, specify as (1,2).
+    #   @param index1 [Integer] the first index to merge
+    #   @param index2 [Integer] the second index to merge, and so on...
+    # @overload set(range)
+    #   With a range of the indices to merge. Unless use_para_index is true, this means the main Array index. See the first overload set about it.
+    #   @param range [Range] describe value param
+    # @param use_para_index: [Boolean] If false (Default), the indices are for the main indices (alternative between Parts/Paragraphs and Boundaries, starting from Part/Paragraph). If true, the indices are as obtained with {#parts}, namely the array containing only Parts/Paragraphs.
+    # @return [self, nil] nil if nothing is merged (because of wrong indices).
+    def merge_para!(*rest, use_para_index: false)
+$myd = true
+#warn "DEBUG:m00: #{rest}\n"
+      (ranchk = build_index_range_for_merge_para!(*rest, use_para_index: use_para_index)) || (return self)  # Do nothing.
+      # ranchk is guaranteed to have a size of 2 or greater.
+#warn "DEBUG:m0: #{ranchk}\n"
+      self[ranchk] = [self[ranchk].to_a[0..-2].join, self[ranchk.end]]  # 2-elements (Para, Boundary)
+      self
+    end
+
+    # Building a proper array for the indices to merge
+    #
+    # Returns always an even number of Range, starting from para,
+    # like (2..5), the last of which is a Boundary which is not merged.
+    # In this example, Para(i=2)/Boundary(3)/Para(4) is merged,
+    # while Boundary(5) stays as it is.
+    #
+    # @param (see #merge_para!)
+    # @param use_para_index: [Boolean] false
+    # @return [Range, nil] nil if no range is selected.
+    def build_index_range_for_merge_para!(*rest, use_para_index: false)
+#warn "DEBUG:b0: #{rest.inspect} to_a=#{to_a}\n"
+      inary = rest.flatten
+      return nil if inary.empty?
+      # inary = inary[0] if like_range?(inary[0])
+#warn "DEBUG:b1: #{inary.inspect}\n"
+      (ary = to_ary_positive_index(inary, to_a)) || return  # Guaranteed to be an array of positive indices (sorted and uniq-ed).
+#warn "DEBUG:b3: #{ary}\n"
+      return nil if ary.empty?
+
+      # Normalize so the array contains both Paragraph and Boundaries in between.
+      # After this, ary must be [Para1-index, Boundary1-index, P2, B2, ..., Pn-index, Bn-index]
+      # Note: In the input, the index is probably for Paragraph.  But,
+      #   for the sake of later processing, make the array contain an even number
+      #   of elements, ending with Boundary.
+      if use_para_index
+        ary = ary.map{|i| [i*2, i*2+1]}.flatten
+      elsif index_para?(ary[-1], skip_check: true)
+        # The last index in the given Array or Range was for Paragraph (Likely case).
+        ary.push(ary[-1]+1)
+      end
+
+      # Exception if they are not consecutive.
+      ary.inject{|memo, val| (val == memo+1) ? val : raise(ArgumentError, "Given (Paragraph) indices are not consecutive.")}
+
+$myd = false
+      # Exception if the first index is for Boundary and no Paragraph.
+      raise ArgumentError, "The first index (#{ary[0]}) is not for Paragraph." if !index_para?(ary[0], skip_check: true)
+
+      i_end = [ary[-1], size-1].min
+      return if i_end - ary[0] < 3  # No more than 1 para selected.
+
+      (ary[0]..ary[-1])
+    end
+    private :build_index_range_for_merge_para!
 
     # Normalize the content, making sure it has an even number of elements
     #

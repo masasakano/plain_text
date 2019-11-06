@@ -89,6 +89,8 @@ module PlainText
   #
   class ParseRule
 
+    include PlainText::Util
+
     # Main Array of rules (Proc or Regexp).  Do not delete or add the contents, as it would have a knock-on effect, especially with {#names}!
     # Use {#rule_at} to get a rule for the index/key.
     # The private method {#rule_at}(-1) is the same as {#rules}[-1],
@@ -283,7 +285,8 @@ module PlainText
     # @param index_rules [Integer] Index for {#rules}. A negative index is allowed.
     # @return [Integer] Non-negative index where name is set; i.e., if index=-1 is specified for {#rules} with a size of 3, the returned value is 2 (the last index of it).
     def set_name_at(name, index_rules)
-      index = PlainText::Util.positive_array_index_checked(index_rules, @rules, accept_too_big: false, varname: 'rules')
+      index = positive_array_index_checked(index_rules, @rules, accept_too_big: false, varname: 'rules')
+      # index = PlainText::Util.positive_array_index_checked(index_rules, @rules, accept_too_big: false, varname: 'rules')
       if !name
         @names[index] = nil
         return index

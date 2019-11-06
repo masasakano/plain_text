@@ -1,4 +1,14 @@
 -----
+2019-11-06  Masa Sakano
+  * PlainText::Util (`plain_text/util.rb`)
+    * All the methods are now private.
+    * New dedicated test code file: `lib/plain_text/util.rb`
+  * PlainText::Part (`plain_text/part.rb`)
+    * Two new public methods `merge_para!` and `merge_para_if`
+  * head.rb, tail.rb (hence `plain_text.rb`)
+    * Fixed a critical bug in the null case with a Regexp option.
+
+-----
 (Version: 0.4)
 2019-10-29  Masa Sakano
   * Changed the names in PlainText::Part.(map|each)_boundaries_* to boundary, and similarly parts to part

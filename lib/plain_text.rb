@@ -851,6 +851,13 @@ module PlainText
 
   # Returns MatchData of the String at and before the first linebreak before the MatchData (inclusive)
   #
+  # Basically this returns String after the last linebreak of the input
+  #
+  # @example
+  #   pre_match_in_line("1\n2\n__abc")  # => #<MatchData "__abc"> pre_match=="1\n2\n"
+  #   pre_match_in_line("1\n2\n")       # => #<MatchData ""     > pre_match=="1\n2\n"
+  #   pre_match_in_line(      "__abc")  # => #<MatchData "__abc"> pre_match=="     "
+  #
   # @param strpre [String] String of prematch of the last MatchData
   # @param linebreak: [String] +\n+ etc (Default: $/)
   # @return [MatchData] m[0] is the string after the last linebreak before the matched data (exclusive) and m.pre_match is all the lines before that.
@@ -889,8 +896,7 @@ module PlainText
   # @see #tail
   def tail_regexp(re_in, inclusive: true, linebreak: $/)
     arst = split_with_delimiter re_in  # PlainText::Split#split_with_delimiter (included in String)
-    return self.class.new("") if 0 == arst.size  # Maybe self is a sub-class of String.
-
+    return self.class.new("") if arst.size <= 1  # n.b., Maybe self is a sub-class of String.
     if inclusive
       return pre_match_in_line( arst[0..-3].join, linebreak: linebreak)[0] + arst[-2] + arst[-1]
       # Note: Even if (arst.size < 3), arst[0..-3] returns [].

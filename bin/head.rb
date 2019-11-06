@@ -74,12 +74,11 @@ end
 
 str = ARGF.read
 
-# A linebreak guaranteed at the end.
-if is_inverse
-  puts PlainText.head_inverse(str, num_in, **opts)
-else
-  puts PlainText.head(str, num_in, **opts)
-end
+method = (is_inverse ? :head_inverse : :head)
+sout = PlainText.public_send(method, str, num_in, **opts)
+
+# A linebreak guaranteed at the end, unless it is empty.
+puts sout if !sout.empty?
 
 exit
 

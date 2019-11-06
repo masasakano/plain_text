@@ -2,7 +2,7 @@
 
 # Tests of an executable.
 #
-# @author: M. Sakano (Wise Babel Ltd)
+# @author M. Sakano (Wise Babel Ltd)
 
 require 'open3'
 
@@ -33,7 +33,7 @@ class TestUnitHeadRb < MiniTest::Test
   def test_countchar01
     o, e, s = Open3.capture3 EXE
     assert_equal 0, s.exitstatus, "error is raised: STDOUT="+o.inspect+" STDERR="+(e.empty? ? '""' : ":\n"+e)
-    assert_equal "\n", o
+    assert_equal "", o
     assert_empty e
 
     stin = "1\n2\n3\n4\n5\n6\n7\n8\n9\nA\nB\n"
@@ -65,6 +65,15 @@ class TestUnitHeadRb < MiniTest::Test
     assert_equal 0, s.exitstatus, "error is raised: STDOUT="+o.inspect+" STDERR="+(e.empty? ? '""' : ":\n"+e)
     assert_equal stin[0..7], o, "Wrong! STDOUT="+o.inspect+" STDERR="+(e.empty? ? '""' : ":\n"+e)
     assert_empty e
+
+    o, e, s = Open3.capture3 EXE+' -e "no_match" -i', stdin_data: stin
+    assert_equal 0, s.exitstatus
+    assert_equal '', o, prerr('', o)
+    assert_empty e
+  end
+
+  def prerr(*rest, long: true)
+    '[期待] '+rest.map(&:inspect).join(" ⇔ "+(long ? "\n" : "")+'[実際] ')
   end
 end # class TestUnitHeadRb < MiniTest::Test
 

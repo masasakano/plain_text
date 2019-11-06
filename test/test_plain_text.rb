@@ -26,6 +26,7 @@ class TestUnitPlainText < MiniTest::Test
 
   class ChString < String
     # Test sub-class.
+    include PlainText
   end
 
   def setup
@@ -210,6 +211,15 @@ class TestUnitPlainText < MiniTest::Test
     assert_equal s7, PT.head(s, /T/), s7.inspect+" <=> \n"+PT.head(s, /T/).inspect # Up to 11
   end
 
+  def test_head_re04
+    s = "all-matched"
+    # Null cases
+    assert_equal    s, PT.head(s, /X/, inclusive: true)
+    assert_equal    s, PT.head(s, /X/, inclusive: false)
+    assert_equal   "", PT.head_inverse(s, /X/, inclusive: true)
+    assert_equal   "", PT.head_inverse(s, /X/, inclusive: false)
+  end
+
   def test_tail01
     assert_equal "",    PT.tail("")
     assert_equal 'abc', PT.tail("abc")
@@ -276,6 +286,33 @@ class TestUnitPlainText < MiniTest::Test
     assert_equal     s, PT.tail(s, /b/), prerr(s, PT.tail(s, /b/))
     assert_equal "def", PT.tail(s, /a/, inclusive: false)
     assert_equal "def", PT.tail(s, /b/, inclusive: false), prerr('"def"', PT.tail(s, /b/, inclusive: false))
+  end
+
+  def test_tail_re04
+    s  = "abc\ndef"
+    # Null cases
+    assert_equal    "", PT.tail(s, /X/, inclusive: true)
+    assert_equal    "", PT.tail(s, /X/, inclusive: false)
+    assert_equal     s, PT.tail_inverse(s, /X/, inclusive: true)
+    assert_equal     s, PT.tail_inverse(s, /X/, inclusive: false)
+
+    s = "A. has\nB. adds\n\n\n___Sample\n\n    NextLine\n"
+    assert_equal     s, PT.tail_inverse(s, /no_match/)
+    assert_equal    "", PT.tail(        s, /no_match/)
+  end
+
+  def test_pre_match_in_line01
+    # s = ["A. has\nB. adds\n\nC\n___", "Sample", "\nE\n    NextLine\n"]
+    s  = ChString.new ""
+    s0 = ChString.new "1\n2\n__abc"
+    s1 = ChString.new "1\n2\n"
+    s2 = ChString.new       "__Abc"
+    assert_equal "__abc", s.send(:pre_match_in_line, s0)[0]
+    assert_equal "",      s.send(:pre_match_in_line, s1)[0]
+    assert_equal "__Abc", s.send(:pre_match_in_line, s2)[0]
+    assert_equal "1\n2\n", s.send(:pre_match_in_line, s0).pre_match
+    assert_equal "1\n2\n", s.send(:pre_match_in_line, s1).pre_match
+    assert_equal       "", s.send(:pre_match_in_line, s2).pre_match
   end
 
   # @param *rest [Object] Parameters to print.  Expected first, Actual second.

@@ -331,6 +331,86 @@ class TestUnitPlainTextPart < MiniTest::Test
     assert_raises(ArgumentError){ pt1.slice!(1..2) }  # Odd starting index.
   end
 
+  # merge paragraphs
+  def test_merge_para
+    s1 = "a\n\nb\n\nc\n\nd\n\ne\n\n"
+    #     0 1  2 3  4 5  6 7  8 9
+    pt1 = Pt.parse s1
+    assert_equal 10, pt1.size
+    assert_equal  5, pt1.parts.size
+    assert_equal "b\n\n",      pt1[2..3].join
+
+    pt2 = pt1.dup
+    pt2.merge_para!(2,3,4)
+    assert_equal s1, pt2.join
+    assert_equal  8, pt2.size
+    assert_equal "b\n\nc\n\n", pt2[2..3].join
+
+    pt2 = pt1.dup
+    pt2.merge_para!(2,3,4, 5)
+    assert_equal s1, pt2.join
+    assert_equal  8, pt2.size
+    assert_equal "b\n\nc\n\n", pt2[2..3].join
+
+    pt2 = pt1.dup
+    pt2.merge_para!(2..4)
+    assert_equal s1, pt2.join
+    assert_equal  8, pt2.size
+    assert_equal "b\n\nc\n\n", pt2[2..3].join
+
+    pt2 = pt1.dup
+    pt2.merge_para!(2..5)
+    assert_equal s1, pt2.join
+    assert_equal  8, pt2.size
+    assert_equal "b\n\nc\n\n", pt2[2..3].join
+
+    pt2 = pt1.dup
+    pt2.merge_para!(2...6)
+    assert_equal s1, pt2.join
+    assert_equal  8, pt2.size
+    assert_equal "b\n\nc\n\n", pt2[2..3].join
+
+    pt2 = pt1.dup
+    pt2.merge_para!(2...-4)
+    assert_equal s1, pt2.join
+    assert_equal  8, pt2.size
+    assert_equal "b\n\nc\n\n", pt2[2..3].join
+
+    pt2 = pt1.dup
+    pt2.merge_para!(1..2, use_para_index: true)
+    assert_equal s1, pt2.join
+    assert_equal  8, pt2.size
+    assert_equal "b\n\nc\n\n", pt2[2..3].join
+
+    pt2 = pt1.dup
+    pt2.merge_para!(8..12)
+    assert_equal s1, pt2.join
+    assert_equal 10, pt2.size
+    assert_equal pt1, pt2
+  end
+
+  def test_merge_para_if
+    s1 = "a\n\nb\n\nc\n\nd\n\ne\n\n"
+    #     0 1  2 3  4 5  6 7  8 9
+    pt1 = Pt.parse s1
+    
+    pt2 = pt1.dup
+    assert pt2.merge_para_if{|ary,bi,bf|
+      ary[0] == ?b && ary[2] == ?c
+    }
+    assert_equal s1, pt2.join
+    assert_equal  8, pt2.size
+    assert_equal "b\n\nc\n\n", pt2[2..3].join
+
+    # Multiple
+    pt2 = pt1.dup
+    assert pt2.merge_para_if{|ary,bi,bf|
+      (ary[0] == ?a && ary[2] == ?b) || (ary[0] == ?d && ary[2] == ?e)
+    }
+    assert_equal s1, pt2.join
+    assert_equal  6, pt2.size
+    assert_equal ["a\n\nb", "\n\n", "c", "\n\n", "d\n\ne", "\n\n"], pt2.to_a
+  end
 
   # Tests of Part.parse
   def test_parse01
