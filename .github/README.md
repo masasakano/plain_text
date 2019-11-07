@@ -282,8 +282,9 @@ The source codes are annotated in the [YARD](https://yardoc.org/) format. You
 can view it in [RubyGems/plain_text](https://rubygems.org/gems/plain_text) .
 
 The source code is maintained also in
-[Github](https://github.com/masasakano/plain_text) (no intuitive interface for
-annotation)
+[Github](https://github.com/masasakano/plain_text) with no intuitive interface
+for annotation but with easily-browsable
+[ChangeLog](https://github.com/masasakano/plain_text/blob/master/ChangeLog)
 
 ### Tests
 

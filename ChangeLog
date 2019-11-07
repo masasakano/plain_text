@@ -1,4 +1,9 @@
 -----
+(Version: 0.5.1)
+2019-11-07  Masa Sakano
+  * Minor update of gemspec (for RubyGems.org).
+
+-----
 (Version: 0.5)
 2019-11-07  Masa Sakano
   * bin/head.rb, bin/tail.rb (hence `lib/plain_text.rb`)
