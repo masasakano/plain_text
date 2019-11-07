@@ -1,4 +1,8 @@
 -----
+2019-11-07  Masa Sakano
+  * Modified .github/README.md
+
+-----
 (Version: 0.6)
 2019-11-07  Masa Sakano
   * Introduces a new concept "Para" and accordingly renamed some methods like Part#parts to Part#paras
