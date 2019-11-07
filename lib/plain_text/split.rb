@@ -46,6 +46,42 @@ module PlainText
       adjust_last_element(arret) # => Array
     end
 
+    # The class-method version of the instance method of the same name.
+    #
+    # One more parameter (input String) is required to specify.
+    #
+    # @param instr [String] String that is examined.
+    # @param re_in [Regexp, String] If String, it is interpreted literally as in String#split.
+    # @param like_linenum: [Boolean] if true (Def: false), it counts like the line number.
+    # @param with_if_end: [Boolean] a special case (see the description).
+    # @return [Integer] always positive
+    # @see PlainText::Split#count_regexp
+    def self.count_regexp(instr, re_in, like_linenum: false, with_if_end: false)
+      like_linenum = true if with_if_end
+      return (with_if_end ? [0, true] : 0) if instr.empty?
+      allsize = split_with_delimiter(instr, re_in).size
+
+      n_normal = allsize.div(2)
+      return n_normal if !like_linenum
+      n_lines = (allsize.even? ? allsize : allsize+1).div 2
+      with_if_end ? [n_normal, (n_normal ==  n_lines)] : n_lines
+    end
+
+    # The class-method version of the instance method of the same name.
+    #
+    # One more parameter (input String) is required to specify.
+    #
+    # @param instr [String] String that is examined.
+    # @param linebreak: [String] +\n+ etc (Default: $/).
+    # @return [Integer] always positive
+    # @see #count_lines
+    def self.count_lines(instr, linebreak: $/)
+      return 0 if instr.empty?
+      ar = instr.split(linebreak, -1)  # -1 is specified to preserve the last linebreak(s).
+      ar.pop if "" == ar[-1]
+      ar.size
+    end
+
     ####################################################
     # Class methods (Private)
     ####################################################
@@ -92,6 +128,44 @@ module PlainText
     # @return [Array]
     def split_with_delimiter(*rest)
       PlainText::Split.public_send(__method__, self, *rest)
+    end
+
+    # Count the number of matches to self that satisfy the given Regexp
+    #
+    # If like_linenum option is specified, it is counted like the number of
+    # lines, namely the returned value is incremented from the number of
+    # matches by 1 unless the very last characters of the String is
+    # the last match.
+    # For example, if no matches are found, this still returns one.
+    #
+    # Note if the String (self) is empty, this always returns 0.
+    #
+    # The special option is +with_if_end+.  If given true,  
+    # this returns Array<Integer, Boolean> instead of a simple Integer,
+    # with the first parameter being the Integer of the count as with
+    # the default like_linenum=false, and the second parameter gives
+    # true if the number is the same even if it was like_linenum=true,
+    # namely if the end of the String coincides with the last match,
+    # else false.
+    # (This parameter is introduced just to reduce the overhead of
+    # potentially calling this routine twice or user's making their own check.)
+    #
+    # @param re_in [Regexp, String] If String, it is interpreted literally as in String#split.
+    # @param like_linenum: [Boolean] if true (Def: false), it counts like the line number.
+    # @param with_if_end: [Boolean] a special case (see the description).
+    # @return [Integer, Array<Integer, Boolean>] always positive
+    # @see PlainText::Split#count_regexp
+    def count_regexp(*rest, **kwd)
+      PlainText::Split.public_send(__method__, self, *rest, **kwd)
+    end
+
+    # Returns the number of lines.
+    #
+    # @param linebreak: [String] +\n+ etc (Default: $/).
+    # @return [Integer] always positive
+    # @see PlainText::Split#count_regexp
+    def count_lines(**kwd)
+      PlainText::Split.public_send(__method__, self, **kwd)
     end
   end # module Split
 end # module PlainText

@@ -591,7 +591,7 @@ module PlainText
   # @param inclusive: [Boolean] read only when unit is :line. If inclusive (Default), the (entire) line that matches is included in the result.
   # @param linebreak: [String] +\n+ etc (Default: +$/+), used when +unit==:line+ (Default)
   # @return [String] as self
-  def head(num_in=DEF_HEADTAIL_N_LINES, unit: :line, ignore_case: false, inclusive: true, multi_line: false, linebreak: $/)
+  def head(num_in=DEF_HEADTAIL_N_LINES, unit: :line, inclusive: true, padding: 0, linebreak: $/)
     if num_in.class.method_defined? :to_int
       num = num_in.to_int
       raise ArgumentError, "Non-positive num (#{num_in}) is given in #{__method__}" if num.to_int < 1
@@ -604,10 +604,10 @@ module PlainText
     case unit
     when :line, "-n"
       # Regexp (for boundary)
-      return head_regexp(re_in, inclusive: inclusive, linebreak: linebreak) if re_in
+      return head_regexp(re_in, inclusive: inclusive, padding: padding, linebreak: linebreak) if re_in
 
       # Integer (a number of lines)
-      ret = split(linebreak)[0..(num-1)].join(linebreak)
+      ret = split(linebreak, -1)[0..(num-1)].join(linebreak)  # -1 is specified to preserve the last linebreak(s).
       return ret if size <= ret.size  # Specified line is larger than the original or the last NL is missing.
       return(ret << linebreak)  # NL is added to the tail as in the original.
     when :char
@@ -634,7 +634,7 @@ module PlainText
   # @return same as self
   def head_inverse(*rest, **key)
     s2 = head(*rest, **key)
-    (s2.size >= size) ? '' : self[s2.size..-1]
+    (s2.size >= size) ? self[0,0] : self[s2.size..-1]
   end
 
   # Normalizes line-breaks
@@ -779,7 +779,8 @@ module PlainText
   # @param inclusive: [Boolean] read only when unit is :line. If inclusive (Default), the (entire) line that matches is included in the result.
   # @param linebreak: [String] +\n+ etc (Default: +$/+), used when unit==:line (Default)
   # @return [String] as self
-  def tail(num_in=DEF_HEADTAIL_N_LINES, unit: :line, ignore_case: false, inclusive: true, multi_line: false, linebreak: $/)
+  def tail(num_in=DEF_HEADTAIL_N_LINES, unit: :line, inclusive: true, padding: 0, linebreak: $/)
+
     if num_in.class.method_defined? :to_int
       num = num_in.to_int
       raise ArgumentError, "num of zero is given in #{__method__}" if num == 0
@@ -793,7 +794,7 @@ module PlainText
     case unit
     when :line, '-n'
       # Regexp (for boundary)
-      return tail_regexp(re_in, inclusive: inclusive, linebreak: linebreak) if re_in
+      return tail_regexp(re_in, inclusive: inclusive, padding: padding, linebreak: linebreak) if re_in
 
       # Integer (a number of lines)
       return tail_linenum(num_in, num, linebreak: linebreak)
@@ -822,7 +823,7 @@ module PlainText
   # @return same as self
   def tail_inverse(*rest, **key)
     s2 = tail(*rest, **key)
-    (s2.size >= size) ? '' : self[0..(size-s2.size-1)]
+    (s2.size >= size) ? self[0,0] : self[0..(size-s2.size-1)]
   end
 
 
@@ -832,22 +833,61 @@ module PlainText
 
   # head command with Regexp
   #
+  # @todo Improve the algorithm like {#tail_regexp}
+  #
   # @param re_in [Regexp] Regexp to determine the boundary.
   # @param inclusive: [Boolean] If true (Default), the (entire) line that matches re_in is included in the result. Else the entire line is excluded.
+  # @param padding: [Integer] Add (postive/negative) the number of lines returned.
   # @param linebreak: [String] +\n+ etc (Default: $/).
   # @return [String] as self
   # @see #head
-  def head_regexp(re_in, inclusive: true, linebreak: $/)
+  def head_regexp(re_in, inclusive: true, padding: 0, linebreak: $/)
+    return self if empty?
     mat = re_in.match self
     return self if !mat
     if inclusive
-      return mat.pre_match+mat[0]+post_match_in_line(mat, linebreak: linebreak)[0]
+      postmat = post_match_in_line(mat, linebreak: linebreak)
+      strmain = mat.pre_match+mat[0]+(postmat ? postmat[0] : "")
     else
-      return pre_match_in_line(mat.pre_match, linebreak: linebreak).pre_match
+      strmain = pre_match_in_line(mat.pre_match, linebreak: linebreak).pre_match
     end
+    return strmain if padding == 0
+
+    ## Adds paddig
+
+    lines_main_deli, nlines_main = split_lines_with_nlines(strmain, linebreak: linebreak)
+    n_lines2ret = nlines_main + padding
+
+    return self[0,0] if n_lines2ret <= 0  # padding is too negatively large and hence no lines left.
+      # [0,0] instead of "" is used to preserve its class (in case it is a child class of String).
+    return lines_main_deli[0..(n_lines2ret*2-1)].join if padding < 0
+
+    # positive padding
+    lines_self_deli, nlines_self = split_lines_with_nlines(linebreak: linebreak)
+    return self if n_lines2ret > nlines_self
+    return lines_self_deli[0..(n_lines2ret*2-1)].join
   end
   private :head_regexp
 
+  # Returns Array of [Line,NL,Line,NL, ...] and number of lines
+  #
+  # Wrapper of {PlainText::Split::split_with_delimiter}(str, linebreak)
+  #
+  # See {PlainText::Split::count_lines} (and {PlainText::Split#count_lines})
+  #
+  # @param str [String]
+  # @return [Array<Array, Integer>]
+  def split_lines_with_nlines(str=self, linebreak: $/)
+    arline = PlainText::Split::split_with_delimiter(str, linebreak)
+    nlines = arline.size
+    nlines += 1 if nlines.odd?  # There is no newline at the tail.
+
+    # This is the NUMBER of the lines (NOT index)
+    nlines = nlines.quo 2  # "/" MUST be fine...
+    [arline, nlines]
+  end
+  private :split_lines_with_nlines
+  
 
   # Returns MatchData of the String at and before the first linebreak before the MatchData (inclusive)
   #
@@ -868,44 +908,123 @@ module PlainText
   end
   private :pre_match_in_line
 
+  # Get the line index numbers of the first and last lines of the mathced string
+  #
+  # It is the Ruby index number as used in the each_line method.
+  #
+  # Matched String can span for multi-lines.
+  #
+  # Note if matched string is empty, it still is treated as significant.
+  #
+  # @param mat [MatchData, String] If String, it is User's (last) matched String.
+  # @param strpre [String, nil] Pre-match from the beginning of self to the mathced string, if mat is String.
+  # @param linebreak: [String] +\n+ etc (Default: $/)
+  # @return [Hash<Integer, nil>] 4 keys: :last_prematch, :first_matched, :last_matched, :first_post_match
+  def _matched_line_indices(mat, strpre=nil, linebreak: $/)
+    if mat.class.method_defined? :post_match
+      # mat is MatchData
+      strmatched, strpre = mat[0], mat.pre_match
+    else
+      strmatched = mat.to_str  rescue raise_typeerror(mat, 'String')
+    end
+
+    hsret = {
+      # last_prematch: nil,
+      first_matched: nil,
+      last_matched: nil,
+      # first_post_match: nil
+    }
+
+    _, hsret[:first_matched] = _ilines_consecutive(strpre, linebreak: linebreak)
+    hsret[:last_matched], _  = _ilines_consecutive(strpre+strmatched, linebreak: linebreak)
+
+    hsret
+  end
+  private :_matched_line_indices
+
+  # Returns line number of the three lines.
+  #
+  # In the following order:
+  # 
+  # 1. Index of the last line of the argument String (number of lines - 1) (or nil if it becomes negative).
+  # 2. the 1st one plus 1 IF the last line ends with a linebreak. Or, 0 if the first one is empty. Otherwise the same as the 1st.
+  #
+  # @return [Array<Integer, nil>] nil if the value is invalid.
+  def _ilines_consecutive(str, linebreak: $/)
+    return [nil, 0] if str.empty?
+
+    # Only if first ends with a linebreak, increment by 1 for the second.
+    nmatched, with_linened = PlainText::Split.count_regexp(str, linebreak, with_if_end: true)
+    first  = nmatched + (with_linened ? 0 : 1) - 1
+    second = first    + (with_linened ? 1 : 0)
+    first  = nil if first < 0
+    [first, second]
+  end
+  private :_ilines_consecutive
+
   # Returns MatchData of the String after the MatchData to the linebreak (inclusive)
   #
-  # @param mat [MatchData, String]
-  # @param strpost [String, nil] Post-match, if mat is String.
+  # @param mat [MatchData, String] If String, it is User's (last) matched String.
+  # @param strpost [String, nil] Post-match, if mat is String.  After User's last match.
   # @param linebreak: [String] +\n+ etc (Default: $/)
-  # @return [MatchData] m[0] is the string after matched data and up to the next first linebreak (inclusive) (or empty string if the last character(s) of matched data is the linebreak) and m.post_match is all the lines after that.
+  # @return [MatchData] m[0] is the string after matched data and up to the next first linebreak (inclusive) (or empty string if the last character(s) of matched data is the linebreak) and m.post_match is all the lines after that.  (maybe nil?? not sure...)
   def post_match_in_line(mat, strpost=nil, linebreak: $/)
+    lb_quo = Regexp.quote linebreak
     if mat.class.method_defined? :post_match
       # mat is MatchData
       strmatched, strpost = mat[0], mat.post_match
     else
       strmatched = mat.to_str rescue raise_typeerror(mat, 'String')
     end
-    lb_quo = Regexp.quote linebreak
-    return /\A/.match if /#{lb_quo}\z/ =~ strmatched
+    return(/\A/.match strpost) if /#{lb_quo}\z/ =~ strmatched
+    return(/\A/.match strpost) if strpost.empty?
     /.*?#{lb_quo}/m.match strpost  # non-greedy match and m option are required, as linebreak can be any characters.
   end
   private :post_match_in_line
 
   # tail command with Regexp
   #
+  # == Algorithm
+  #
+  # 1. Split the String with Regexp with {PlainText::Split#split_with_delimiter}
+  # 2. Find the last matched String.
+  # 3. Find the "line"-index-number of the matched String.
+  # 4. Adjust the line index number depending inclusive/exclusive
+  # 5. Add positive/negative padding number
+  # 6. pass it to {#head_inverse} (after Line-1).
+  #
   # @param re_in [Regexp] Regexp to determine the boundary.
   # @param inclusive: [Boolean] If true (Default), the (entire) line that matches re_in is included in the result. Else the entire line is excluded.
   # @param linebreak: [String] +\n+ etc (Default: $/).
   # @return [String] as self
   # @see #tail
-  def tail_regexp(re_in, inclusive: true, linebreak: $/)
-    arst = split_with_delimiter re_in  # PlainText::Split#split_with_delimiter (included in String)
-    return self.class.new("") if arst.size <= 1  # n.b., Maybe self is a sub-class of String.
-    if inclusive
-      return pre_match_in_line( arst[0..-3].join, linebreak: linebreak)[0] + arst[-2] + arst[-1]
-      # Note: Even if (arst.size < 3), arst[0..-3] returns [].
-    else
-      return post_match_in_line(arst[-2], arst[-1], linebreak: linebreak).post_match
-    end
+  def tail_regexp(re_in, inclusive: true, padding: 0, linebreak: $/)
+    return self if empty?
+
+    # "split" with the given Regexp pattern (NOT with linebreak!)
+    #   arst == (Array<String>) [PreMatch, UsersMatch1, Str, UsersMatch2,..., UsersMatchN [, PostMatch]]
+    #   If the user's match comes at the very end, the last element does not exist.
+    arst = split_with_delimiter re_in  # PlainText::Split#split_with_delimiter (included in this module (hence maybe String))
+
+    # UsersMatch basically failed - no match.
+    return self[0,0] if arst.size <= 1 
+
+    arst.push "" if arst.size.even?
+    # Now the last component is guarantee to be not the delimiter (= String of User's match)
+    #   arst == [PreMatch, UsersMatch1, ..., UsersMatchN, PostMatch(maybe-empty)]
+    # Minimum:
+    #   arst == [PreMatch, UsersMatch1, PostMatch]  (<= maybe much more PreMatch-es)
+    #   (Either/both PreMatch and PostMatch can be empty).
+
+    hslinenum = _matched_line_indices(arst[-2], arst[0..-3].join, linebreak: $/)
+
+    # Note: hslinenum[] is for indices, whereas the number of lines is
+    # required here to pass to head_inverse().
+    nlines_remove_to = (inclusive ? hslinenum[:first_matched] : hslinenum[:last_matched]+1) - padding
+    return self if nlines_remove_to <= 0  # everything
+    return head_inverse(nlines_remove_to)
   end
   private :tail_regexp
-
 
   # tail command based on the number of lines
   #
@@ -916,7 +1035,7 @@ module PlainText
   # @see #tail
   def tail_linenum(num_in, num, linebreak: $/)
     arret = split(linebreak, -1)  # -1 is specified to preserve the last linebreak(s).
-    return self.class.new("") if arret.empty?
+    return self[0,0] if arret.empty?
 
     lb_quo = Regexp.quote linebreak
     if num_in > 0
@@ -924,7 +1043,7 @@ module PlainText
       num = 0  if num >= arret.size
     end
     ar = arret[(-num)..-1]
-    (ar.nil? || ar.empty?) ? self.class.new("") : ar.join(linebreak)
+    (ar.nil? || ar.empty?) ? self[0,0] : ar.join(linebreak)
   end
   private :tail_linenum
 

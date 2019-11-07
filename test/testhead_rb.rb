@@ -97,6 +97,12 @@ class TestUnitHeadRb < MiniTest::Test
     exp = "A\nB\nC\nD\n"
     assert_equal exp, o, prerr(exp,o)
 
+    o, e, s = Open3.capture3 EXE+' -e "c" -p -1', stdin_data: stin
+    exp = "A\nB\n"
+    assert_equal 0, s.exitstatus, comerr(o, e, s)
+    assert_empty e, prerr('',e)
+    assert_equal stin, o, prerr(s,o)
+
   end
 
   def comerr(o, e, s)

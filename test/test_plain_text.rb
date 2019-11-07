@@ -195,6 +195,12 @@ class TestUnitPlainText < MiniTest::Test
     s2 =               "\n 06==\n07\n08\n\n10\n11\n12\n14\n\n16\n17\n18\n19\n\n21\n22\n\n\n"
     assert_equal s1, PT.head(s, /==/) # Up to Line 4
     assert_equal s2, PT.head_inverse(s, /==/) # From Line 5
+    s3 = "\n2\n\n\n\n"
+    exp ="\n2\n\n\n" 
+    act = PT.head(s3, 4)
+    assert_equal exp, act, prerr(exp,act) # Up to Line 4  (test of String#split(s,-1))
+    assert_raises(ArgumentError){PT.head(s3, 0)}
+    assert_equal s3, PT.head(s3, 99)
   end
 
   def test_head_re03
@@ -218,6 +224,48 @@ class TestUnitPlainText < MiniTest::Test
     assert_equal    s, PT.head(s, /X/, inclusive: false)
     assert_equal   "", PT.head_inverse(s, /X/, inclusive: true)
     assert_equal   "", PT.head_inverse(s, /X/, inclusive: false)
+  end
+
+  # padding
+  def test_head_re05
+    s = "\n2\n3\n四\n5\n6\n7\n8\n9\n10\n11\n\n13\n14\n15\n16\n\n壱8\n19\n\n"
+    e = "\n2\n3\n四\n5\n6\n7\n8\n"
+    a = PT.head(s, /5/, inclusive: true, padding: 3)
+    assert_equal    e, a, prerr(e,a)
+    e = "\n2\n"
+    a = PT.head(s, /5/, inclusive: true, padding: -3)
+    assert_equal    e, a, prerr(e,a)
+    
+    s = "\n2\n3\n四\n5\n6\n7\n8\n9\n10\n11\n\n13\n14\n15\n16\n\n壱8\n19\n\n"
+    e =                         "9\n10\n11\n\n13\n14\n15\n16\n\n壱8\n19\n\n"
+    a = PT.head_inverse(s, /5/, inclusive: true, padding: 3)
+    assert_equal    e, a, prerr(e,a)
+    e =      "3\n四\n5\n6\n7\n8\n9\n10\n11\n\n13\n14\n15\n16\n\n壱8\n19\n\n"
+    a = PT.head_inverse(s, /5/, inclusive: true, padding: -3)
+    assert_equal    e, a, prerr(e,a)
+    
+    e = "\n2\n3\n四\n5\n6\n7\n"
+    a = PT.head(s, /5/, inclusive: false, padding: 3)
+    assert_equal    e, a, prerr(e,a)
+    e = "\n"
+    a = PT.head(s, /5/, inclusive: false, padding: -3)
+    assert_equal    e, a, prerr(e,a)
+
+    a = PT.head(s, /5/, inclusive: true, padding: 20)
+    assert_equal    s, a
+    a = PT.head(s, /5/, inclusive: true, padding: -9)
+    assert_equal   "", a
+
+    # Empty (boundary)
+    a = PT.head(s, /2/, inclusive: false, padding: -1)
+    assert_equal   "", a, prerr("",a)
+
+    # Without the last linebreak
+    s = "\n2\n3\n四\n5\n6\n7\n8\n9\n10\n11\n\n13\n14\n15\n16\n\n壱8\n19"
+    a = PT.head(s, /5/, inclusive: false, padding: 20)
+    assert_equal    s, a, prerr(s,a)
+    a = PT.head(s, /19/, inclusive: true)
+    assert_equal    s, a, prerr(s,a)
   end
 
   def test_tail01
@@ -284,7 +332,8 @@ class TestUnitPlainText < MiniTest::Test
     assert_equal     s, PT.tail(s, /a/), prerr(s, PT.tail(s, /a/), long: nil)
     assert_equal     s, PT.tail(s, /a/), prerr(s, PT.tail(s, /a/))
     assert_equal     s, PT.tail(s, /b/), prerr(s, PT.tail(s, /b/))
-    assert_equal "def", PT.tail(s, /a/, inclusive: false)
+    act = PT.tail(s, /a/, inclusive: false)
+    assert_equal "def", act, prerr('def', act)
     assert_equal "def", PT.tail(s, /b/, inclusive: false), prerr('"def"', PT.tail(s, /b/, inclusive: false))
   end
 
@@ -299,6 +348,29 @@ class TestUnitPlainText < MiniTest::Test
     s = "A. has\nB. adds\n\n\n___Sample\n\n    NextLine\n"
     assert_equal     s, PT.tail_inverse(s, /no_match/)
     assert_equal    "", PT.tail(        s, /no_match/)
+    
+    # Without the last linebreak
+    s = "\n2\n3\n四\n5\n6\n7\n8\n9\n10\n11\n\n13\n14\n15\n16\n\n壱8\n19"
+    e = "19"
+    a = PT.tail(s,  1, inclusive: true)
+    assert_equal    e, a, prerr(e,a)
+    a = PT.tail(s,  1, inclusive: false)  # "inclusive" ignored
+    assert_equal    e, a, prerr(e,a)
+    #a = PT.tail(s, /5/, inclusive: false, padding: 20)
+    #assert_equal    s, a, prerr(s,a)
+    a = PT.tail(s, /19/, inclusive: true)
+    assert_equal    e, a, prerr(e,a)
+    a = PT.tail(s, /19/, inclusive: false)
+    assert_equal   "", a, prerr("",a)
+    a = PT.tail(s, /19/, inclusive: true, padding: 22)
+    assert_equal    s, a, prerr(s,a)
+    e = "15\n16\n\n壱8\n19"
+    a = PT.tail(s, /16/, inclusive: false, padding: 2)
+    assert_equal    e, a, prerr(e,a)
+    e = "壱8\n19"
+    a = PT.tail(s, /16/, inclusive: true, padding: -2)
+    assert_equal    e, a, prerr(e,a)
+
   end
 
   def test_pre_match_in_line01

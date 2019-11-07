@@ -1,0 +1,213 @@
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
+require 'optparse'
+require 'open3'
+require 'plain_text'
+
+BANNER = <<"__EOF__"
+USAGE: #{File.basename($0)} [options] [INFILE.txt] < STDIN
+  Clean the partially ill-formated (Github) Markdown converted from yard-Rdoc.
+__EOF__
+
+# Initialising the hash for the command-line options.
+OPTS = {
+  lang: 'ruby',
+  # :chatter => 3,        # Default
+  debug: false,
+}
+
+# Function to handle the command-line arguments.
+#
+# ARGV will be modified, and the constant variable OPTS is set.
+#
+# @return [Hash]  Optional-argument hash.
+#
+def handle_argv
+  opt = OptionParser.new(BANNER)
+  opt.on(  '--lang=LANGUAGE', sprintf("Programming Language like ruby (Def: %s).", OPTS[:lang])) { |v| OPTS[:lang]=v.strip }
+  # opt.on(  '--version', "Display the version and exits.", TrueClass) {|v| OPTS[:version] = v}  # Consider opts.on_tail
+  opt.on(  '--[no-]debug', "Debug (Def: false)", TrueClass) {|v| OPTS[:debug] = v}
+  # opt.separator ""        # Way to control a help message.
+  # opt.separator "Note:"
+  # opt.separator " Spaces are truncated in default."
+
+  opt.parse!(ARGV)
+
+  OPTS
+end
+
+def fix_string_based(str)
+  fix_def_list(
+    fix_inline_link(
+      fix_inline_code(str)
+    )
+  )
+end
+
+# Removes some markdown formatting (for definition list etc)
+def remove_mdfmt(str)
+  str.gsub(/`([^`\n]+)`/, '<tt>\1</tt>').gsub(/\*+([^*\n]+)\*+/, '<strong>\1</strong>').gsub(/\&/, '&amp;').gsub(/</, '&lt;').gsub(/>/, '&gt;').gsub(/"/, '&quot;')
+end
+
+# Removes some markdown formatting (for definition list etc)
+def remove_mdfmt_raw(str)
+  str.gsub(/`([^`\n]+)`/, '\1').gsub(/\*+([^*\n]+)\*+/, '\1').gsub(/\&/, '&amp;').gsub(/</, '&lt;').gsub(/>/, '&gt;').gsub(/"/, '&quot;')
+end
+
+
+# returns the string where the definition list is rewritten for github
+#
+# Similar to {#fix_inline_code} but for def list
+# 
+# @param str [String]
+# @return [String]
+def fix_def_list(str)
+  str.gsub(/^(\S+[^\n]*)\n:((?:\s+[^\n]+(?:\n|\z))+)/m){
+    sdt, sdd = $1, $2
+    "<dt>%s</dt>\n<dd>%s</dd>\n"%[remove_mdfmt_raw(sdt), remove_mdfmt(sdd.chop)]
+  }.gsub(/(\s+\n|\A)(<dt>)/m, '\1<dl>'+"\n"+'\2').gsub(%r@(</dd>[[:blank:]]*)(\n(?:\s+|\z))@, '\1'+"\n"+'</dl>\2')
+end
+
+# returns the string where inline code are fixed.
+#
+# More than 2 words are left like
+#
+#   +abc def+
+#
+# which should be converted into
+#
+#   `abc def`
+# 
+# This is assuming the current paragraph is not a code block.
+# This does not *properly* take into account the escape sequence.
+# For example, '+a\+ b+' is not properly taken into account
+# (though RDoc may not do, either)!
+# 
+# Note if words between '+' straddle over more than 2 lines, something may be wrong,
+# and hence they are ignored.
+# 
+# @param str [String]
+# @return [String]
+def fix_inline_code(str)
+  str.gsub(/(?<!\\)((?:\\\\)*)\+([^+\n]+)(\n[^+\n]+)?(?<!\\)(\\\\)*\+/m){
+    ($1 ? $1 : "")+'`'+$2+($3 ? ' '+$3[1..-1] : '')+'`'+($4 ? $4 : "")
+  }
+end
+
+# returns the string where multi-line links are fixed.
+#
+# Similar to {#fix_inline_code} but for links
+# 
+# @param str [String]
+# @return [String]
+def fix_inline_link(str)
+  str.gsub(%r@(?<!\\)((?:\\\\)*)\[([^\]\n]+)(\n[^\]\n]+)?(?<!\\)(\\\\)*\](\(https?://[^)]+\))@m){
+    ($1 ? $1 : "")+'['+$2+($3 ? ' '+$3[1..-1] : '')+']'+($4 ? $4 : "")+$5.gsub(/\s*\n+\s*/m, '')
+  }
+end
+
+# Indent of the current line
+#
+# @param str [String]
+# @param lb [String] Linebreak: default $/
+# @return [Integer]
+def indent_line(str)
+  /\A(\s*)/ =~ str 
+  $1.size
+end
+
+# Returns the minimum indent of the input String, excluding blank lines.
+#
+# @param str [String]
+# @param lb [String] Linebreak: default $/  (ignored so far)
+# @return [Integer]
+def min_indent(str, lb=$/)
+  return 0 if str.empty?
+  lines = PlainText::Part.parse(str).parts.join("\n").split("\n")
+  lines.map{|ec| indent_line(ec)}.min
+end
+
+# True if it looks like Markdown code block.
+#
+# Neither Github-style "```ruby" nor pandoc-style "~~~~{#mycode...}" is
+# assumed not to be used.
+# This is not accurate and can be cheated if it is already indented as list.
+#
+# @param str [String]
+# @param indent [Integer] Base indent.  If it is 0, 4 or more indents are the conditions.
+def md_code_block?(str, indent=0, *rest)
+  return nil if str.empty?
+  (min_indent(str, *rest) - indent) >= 4
+end
+
+# Returns the last indent of the paragraph if it ends with a list.
+#
+# @param str [String]
+# @param indent_prev [Integer] The minimum indent for an item to keep being in the list in the previous paragraph.
+# @param lb [String] Linebreak: default $/
+# @return [Integer]
+def last_indent(str, indent_prev=0, lb=$/)
+  return indent_prev if !str || str.empty?
+  lines = PlainText::Part.parse(str).parts.join("\n").split("\n")
+  # Note: numsps = 2  # "2." takes up 2 spaces, whereas "12." takes 3.
+  lines.each do |ec|
+    cind = indent_line(ec)
+    if cind - indent_prev >= 4  # Code block!  ##### Maybe deals with it in future!!
+        # This means it is indented more than 5 spaces from the previous.
+    elsif /^(\s*)(?:(\*\s)|(\d+\.(?:\s|$)))/ =~ ec
+      # Reset the indent
+      ind_now = $1.size + ($2 || $3).size + 1  # maybe +2 (for Rdoc2md?)
+      indent_prev = ind_now  # Deeper or shallower or same-level list.
+      # numsps = $3.size + 1 if $3 && !$3.empty?
+    elsif cind < indent_prev - 1  # 1 is a margin...
+      # Breaks out from the previous list.
+      indent_prev = cind
+    end
+  end
+  indent_prev
+end
+
+################################################
+# MAIN
+################################################
+
+$stdout.sync=true
+$stderr.sync=true
+
+#class String
+#  include PlainText
+#end
+
+# Handle the command-line options => OPTS
+opts = handle_argv()
+
+strin = ARGF.read
+## split to paras, fixing inline code blocks
+mdpart = PlainText::Part.parse(strin)
+
+indent_prev = last_indent(mdpart[0])
+mdpart.merge_para_if{ |pbp, _, _|
+  prev_cb = md_code_block?(pbp[0], indent_prev)
+  next_cb = md_code_block?(pbp[2], indent_prev)
+  next true if prev_cb && next_cb
+  indent_prev = last_indent(pbp[2], indent_prev)
+  false
+}
+
+indent_next = 0
+mdpart = mdpart.map_part{|ec|
+  indent_prev = indent_next
+  indent_next = last_indent(ec, indent_prev)
+  next fix_string_based(ec) if !md_code_block?(ec, indent_prev)
+  inde = " "*indent_prev
+  st = ec.gsub(/^    /, '')
+  "%s```%s\n%s\n%s```"%[inde, opts[:lang], st, inde, opts[:lang]]
+}
+
+puts mdpart.join('')
+
+exit
+
+__END__
+

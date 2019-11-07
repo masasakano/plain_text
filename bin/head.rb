@@ -17,6 +17,7 @@ OPTS = {
   inclusive: true,
   inverse: false,  # Option --reverse
   multi_line: false,
+  padding: 0,
   # :chatter => 3,        # Default
   # debug: false,
 }
@@ -37,12 +38,15 @@ def handle_argv
   opt.on('-i', '--[no-]ignore-case', sprintf("Ignore case distinctions in Regexp (Def: %s)", (!OPTS[:ignore_case]).inspect), TrueClass) {|v| OPTS[:ignore_case] = v}
   opt.on('-m', '--[no-]multi-line', sprintf("Multi-line match (option m) in Regexp (Def: %s)", (!OPTS[:multi_line]).inspect), TrueClass) {|v| OPTS[:multi_line] = v}
   opt.on('-x', '--[no-]exclusive', sprintf("The line that matches is excluded? (Def: %s)", (!OPTS[:inclusive]).inspect), FalseClass) {|v| OPTS[:inclusive] = v}
-  opt.on('-r', '--[no-]reverse', sprintf("Reverse the behaviour (print AFTER NUM-th line - inclusive|exclusive) (Def: %s)", (!OPTS[:inverse]).inspect), TrueClass) {|v| OPTS[:inverse] = v}  # WARNING-NOTE: the Hash keyword is "inverse" as opposed to "reverse"
+  opt.on('-p NUM', '--padding=NUM', sprintf("The number of lines included as 'padding' below the matched line (Def: %s)", (!OPTS[:padding]).inspect), Integer) {|v| OPTS[:padding] = v}
+  opt.on('-r', '--[no-]reverse', sprintf("Reverse the behaviour (run AFTER - (inc|ex)clusive and padding) (Def: %s)", (!OPTS[:inverse]).inspect), TrueClass) {|v| OPTS[:inverse] = v}  # WARNING-NOTE: the Hash keyword is "inverse" as opposed to "reverse"
   # opt.on(  '--version', "Display the version and exits.", TrueClass) {|v| OPTS[:version] = v}  # Consider opts.on_tail
   # opt.on(  '--[no-]debug', "Debug (Def: false)", TrueClass) {|v| OPTS[:debug] = v}
   # opt.separator ""        # Way to control a help message.
   opt.separator "Note:"
   opt.separator "  Option -m means '.' includes a newline. '\\s' includes it regardless."
+  opt.separator "  'Padding' (-p) is calculated after Option -x is considered."
+  opt.separator "  Negative 'Padding' like '--padding=-3' reduces the number of lines by 3."
 
   begin
     opt.parse!(ARGV)
@@ -79,7 +83,7 @@ num_in = opts[:num]
 is_inverse = opts[:inverse]
 # $DEBUG = true if opts[:debug]  # Better specify by running this script with ruby --debug
 
-%i(num inverse debug).each do |ek|
+%i(num ignore_case inverse multi_line debug).each do |ek|
   opts.delete ek if opts.has_key? ek
 end
 

@@ -11,6 +11,11 @@ This package also provides a few command-line programs, such as counting the num
 of characters (especially useful for documents in Asian (CJK)
 chatacters) and advanced head/tail commands.
 
+The master of this README file, as well as the document for all the methods, is found in
+{RubyGems/plain_text}[https://rubygems.org/gems/plain_text]
+and in {Github}[https://github.com/masasakano/plain_text]
+where all the hyperlinks are active.
+
 == Design concept
 
 === PlainText - Module and root Namespace
@@ -104,6 +109,7 @@ help message.
 Counts the number of characters in a file(s) or STDIN.
 
 The simplest example to run the command-line script is
+
    countchar YourFile.txt
 
 === textclean
@@ -116,9 +122,9 @@ into 2.  See the reference of {PlainText.clean_text} for detail.
 
 This gives advanced functions, in addition to the standard +head+, including
 
-Regexp:: It can accept Ruby Regexp to determine the boundary (beginning to the first-matched line).
+Regexp:: It can accept Ruby Regexp to determine the boundary (beginning to the first-matched line), including ignore-case, multi-line, extra *padding-line* etc.
 Character-based:: With +--char+ option, it handles the file in units of a chracter, which is especially handy to deal with multi-byte characters like UTF-8.
-Inverse:: It can inverse the counting to ouput everything but initial NUM lines.
+Reverse:: It can *reverese* the behaviour - inverse the counting to ouput everything but initial NUM lines.
 
 A few examples are
 
@@ -130,10 +136,17 @@ A few examples are
     # The same as the UNIX command:  tail -n +5
   
   head.rb -e '^===+' try.txt
-    # => first line up to the line that begins with more than 3 "="
+    # => from the top up to the line that begins with more than 3 "="
   
   head.rb -x -e '^===+' try.txt
-    # => first line up to the line before what begins with more than 3 "="
+    # => from the top up to the line before what begins with more than 3 "="
+
+  head.rb -e '^===+' -p 3 try.txt
+    # => from the top up to 3 lines after what begins with more than 3 "="
+
+  head.rb -e '([a-z])\1$' --padding=-2 try.txt
+    # => from the top up to 2 lines before what ends with 2
+    #    consecutive same letters (case-insentive) like "AA" or "qQ"
 
 The suffix +.rb+ is used to distinguish this command from the UNIX-shell standard command.
 
@@ -141,9 +154,11 @@ The suffix +.rb+ is used to distinguish this command from the UNIX-shell standar
 
 This gives advanced functions, in addition to the standard +tail+, including
 
-Regexp:: It can accept Ruby Regexp to determine the boundary (last-matched line to the end).
+Regexp:: It can accept Ruby Regexp to determine the boundary (last-matched line to the end), including ignore-case, multi-line, extra *padding-line* etc.
 Character-based:: With +--char+ option, it handles the file in units of a chracter, which is especially handy to deal with multi-byte characters like UTF-8.
-Inverse:: It can inverse the counting to ouput everything but the last NUM lines.
+Reverse:: It can *reverese* the behaviour - inverse the counting to ouput everything but the last NUM lines.
+
+See +head.rb+ for practical examples.
 
 Note the UNIX form of
 
@@ -154,6 +169,18 @@ Note the UNIX form of
   head.rb -i -n 5
 
 The suffix +.rb+ is used to distinguish this command from the UNIX-shell standard command.
+
+=== yard2md_afterclean
+
+This stands for "yard to markdown - after-clean".  
+
+The standard conversion way of RDoc (written for yard) with +rdoc+ library
+
+RDoc::Markup::ToMarkdown.new.convert
+
+is limited, with the produced markdown having a fair number of flaws.
+This command tries to botch-fix it.  The result is
+still not perfect but does some good automation job.
 
 == Miscellaneous
 
@@ -188,19 +215,36 @@ Work in progress...
 This script requires {Ruby}[http://www.ruby-lang.org] Version 2.0
 or above (possibley 2.2 or above?).
 
-As for the command-line script file, it can be put in any of your command-line search
+For use of the library, if your Ruby script declares
+
+  require "plain_text"
+
+all the related libraries should be read.
+If you +include PlainText+ from String, it would be handy, though
+not mandatory to use this library.
+
+As for the command-line script files, they can be put in any of your command-line search
 paths.  Make sure the RUBYLIB environment
 variable contains the library directory to this gem, which is
+
    /THIS/GEM/LIBRARY/PATH/plain_text/lib
 
+(which should be set automatically, as long as you use the standard Gem environment).
 You may need to modify the first line (Shebang line) of the script to suit your
 environment (it should be unnecessary for Linux and MacOS), or run it
 explicitly with your Ruby command as
+
    Prompt% /YOUR/ENV/ruby /YOUR/INSTALLED/countchar
 
 == Developer's note
 
-The source code is maintained also in {Github}[https://github.com/masasakano/plain_text]
+The source codes are annotated in the {YARD}[https://yardoc.org/] format. You
+can view it in
+{RubyGems/plain_text}[https://rubygems.org/gems/plain_text] .
+
+The source code is maintained also in
+{Github}[https://github.com/masasakano/plain_text] (no intuitive
+interface for annotation)
 
 === Tests
 

@@ -1,4 +1,15 @@
 -----
+(Version: 0.5)
+2019-11-07  Masa Sakano
+  * bin/head.rb, bin/tail.rb (hence `lib/plain_text.rb`)
+    * "-p|--padding" option added.
+    * Algorithm in `PlainText#tail_regexp` well simplified.
+    * Some boundary-condtion bugs fixed.
+  * `PlainText#Split` (`lib/plain_text/split.rb`)
+    * Added public methods {#count_regexp} and {#count_lines} and their corresponding class methods.
+  * New Ruby executable script: `bin/yard2md_afterclean`
+
+-----
 2019-11-06  Masa Sakano
   * head.rb, tail.rb
     * "-i|--[no]-inverse" command-line option renamed to "-r|--[no-]reverse"

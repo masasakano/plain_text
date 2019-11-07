@@ -74,5 +74,34 @@ class TestUnitPlainTextSplit < MiniTest::Test
     assert_equal ["", "XY", "ab", "XX", "c", "XY"], s.split_with_delimiter(/X+(Y?)/)
   end
 
+  def test_count_regexp01
+    s1 = "XabXXc"
+    s2 = "XabXXcX"
+    s3 = "XXabX+XcX"
+    assert_equal 2, PTS.count_regexp(s1, /X+Y?/)
+    assert_equal 2, s1.count_regexp(/X+Y?/)
+    assert_equal 3, s1.count_regexp(/X+Y?/, like_linenum: true)
+    assert_equal [2, false], s1.count_regexp(/X+Y?/, with_if_end: true)
+    assert_equal [2, false], s1.count_regexp(/X+Y?/, with_if_end: true, like_linenum: false)
+    assert_equal 3, s2.count_regexp(/X+Y?/)
+    assert_equal 3, s2.count_regexp(/X+Y?/, like_linenum: true)
+    assert_equal [3, true],  s2.count_regexp(/X+Y?/, with_if_end: true)
+    assert_equal 0, s2.count_regexp('X+')
+    assert_equal 1, s3.count_regexp('X+')
+    assert_equal 2, s3.count_regexp('X+',   like_linenum: true)
+    assert_equal [0, true],  ''.count_regexp(/X+Y?/, with_if_end: true)
+  end
+
+  def test_count_lines01
+    s1 = "\nab\n\nc"
+    s2 = "\nab\n\nc\n"
+    s3 = "\r\n\nab\r\n+\r\n\r\n"
+    assert_equal 4, PTS.count_lines(s1)
+    assert_equal 4, s1.count_lines
+    assert_equal 4, s2.count_lines
+    assert_equal 0, ''.count_lines
+    assert_equal 4, s3.count_lines(linebreak: "\r\n")
+  end
+
 end # class TestUnitPlainTextSplit < MiniTest::Test
 
