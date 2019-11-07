@@ -336,9 +336,9 @@ module PlainText
     # Linebreaks and spaces
     case lbs_style
     when :truncate,   :t
-      prt.parts.each{|ec| ec.gsub!(/\n{2,}/m, "\n")}
+      prt.paras.each{|ec| ec.gsub!(/\n{2,}/m, "\n")}
     when :delete,   :d
-      prt.parts.each{|ec| ec.gsub!(/\n/m, "")}
+      prt.paras.each{|ec| ec.gsub!(/\n/m, "")}
     when :none, :n
       # Does nothing
     else
@@ -350,13 +350,13 @@ module PlainText
 
     # Linebreaks become spaces
     if lb_is_space
-      prt.parts.each{|ec| ec.gsub!(/\n/m, " ")}
+      prt.paras.each{|ec| ec.gsub!(/\n/m, " ")}
       clean_text_sps!(prt, sps_style: sps_style, is_debug: is_debug) if sps_style == :truncate
     end
 
     # Ignore spaces between, before, and after Asian characters.
     if delete_asian_space
-      prt.parts.each do |ea_p|
+      prt.paras.each do |ea_p|
         PlainText.extend_this(ea_p)
         ea_p.delete_spaces_bw_cjk_european!  # Destructive change in prt.
       end
@@ -380,9 +380,9 @@ module PlainText
     # Head of each line
     case linehead_style
     when :truncate, :t
-      prt.parts.each{|ec| ec.gsub!(/^[[:blank:]]+/, " ")}
+      prt.paras.each{|ec| ec.gsub!(/^[[:blank:]]+/, " ")}
     when :delete, :d
-      prt.parts.each{|ec| ec.gsub!(/^[[:blank:]]+/, "")}
+      prt.paras.each{|ec| ec.gsub!(/^[[:blank:]]+/, "")}
     when :none, :n
       # Do nothing
     else
@@ -392,13 +392,13 @@ module PlainText
     # Tail of each line
     case linetail_style
     when :truncate, :t
-      prt.parts.each{|ec| ec.gsub!(/[[:blank:]]+$/, " ")}
+      prt.paras.each{|ec| ec.gsub!(/[[:blank:]]+$/, " ")}
     when :delete, :d
-      prt.parts.each{|ec| ec.gsub!(/[[:blank:]]+$/, "")}
+      prt.paras.each{|ec| ec.gsub!(/[[:blank:]]+$/, "")}
     when :markdown, :m
       # Two spaces are preserved
-      prt.parts.each{|ec| ec.gsub!(/(?:^|(?<![[:blank:]]))[[:blank:]]$/, "")}  # A single space is deleted.
-      prt.parts.each{|ec| ec.gsub!(/[[:blank:]]+  $/, "  ")}  # 3 or more spaces are truncated into 2 spaces, only IF the last two spaces are the ASCII spaces.
+      prt.paras.each{|ec| ec.gsub!(/(?:^|(?<![[:blank:]]))[[:blank:]]$/, "")}  # A single space is deleted.
+      prt.paras.each{|ec| ec.gsub!(/[[:blank:]]+  $/, "  ")}  # 3 or more spaces are truncated into 2 spaces, only IF the last two spaces are the ASCII spaces.
     when :none, :n
       # Do nothing
     else
@@ -499,10 +499,10 @@ module PlainText
         is_debug: false
       )
 
-    prt.parts.each do |e_pa|
+    prt.paras.each do |e_pa|
       # Each line treated as a Paragraph, and [[:space:]]+ between them as a Boundary.
       # Then, to work on anything within a line except for line-head/tail is easy.
-      prt_para = Part.parse(e_pa, rule: ParseRule::RuleEachLineStrip).map_part { |e_li|
+      prt_para = Part.parse(e_pa, rule: ParseRule::RuleEachLineStrip).map_para { |e_li|
         case sps_style
         when :truncate, :t
           e_li.gsub(/[[:blank:]]{2,}/m, " ")
@@ -513,7 +513,7 @@ module PlainText
         else
           raise ArgumentError
         end
-      } # map_part
+      } # map_para
       e_pa.replace prt_para.join
     end
   end

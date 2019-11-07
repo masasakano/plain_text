@@ -30,9 +30,9 @@ such as, {PlainText.clean_text} and {PlainText.count_char}.
 === PlainText::Part - Core class to describe the logical structure
 
 In the namespace of this module, it contains {PlainText::Part} class,
-which is the heart to describe the logical structure of documents.
+which is the heart to describe the logical structure of a document.
 It is basically a container class and indeed a sub-class of Array. It
-can contain either of another {PlainText::Part} or more basic
+can contain either of other (multiple) {PlainText::Part} or more basic
 components of either of {PlainText::Part::Paragraph} and
 {PlainText::Part::Boundary}, both of which are sub-classes of String.
 
@@ -64,7 +64,7 @@ An example instance looks like this:
      (5) Boundary::General
    )
 
-where the name of subclasses (or constants) here arbitrary, except for
+where the names of the subclasses (or constants) here are arbitrary, except for
 {PlainText::Part::Paragraph::Empty} and
 {PlainText::Part::Boundary::Empty}, which are pre-defined. Users can
 define their own subclasses to help organize the logical structure at
@@ -73,9 +73,18 @@ their will.
 Basically, at every layer, every {PlainText::Part} or
 {PlainText::Part::Paragraph} is sandwiched by
 {PlainText::Part::Boundary}, except for the very first one.
+The former contains something significant on its own, whereas the
+latter (Boundary) contains nothing significant on its own, except they
+may indicate the type of the following (or preceding) entity, such as
+a title or section.
 
-By performing +join+ method, one can retrieve the entire document as a
-String instance any time.
+In this library (document, classes and modules), the former and latter
+are collectively referred to as Para (or Paras) and Boundary (or
+Boundaries), respectively.  Namely, a Para means either of
+{PlainText::Part} and {PlainText::Part::Paragraph}.
+
+By performing +Part#join+ method, one can retrieve the entire document as a
+String instance any time, just like +Array#join+.
 
 === PlainText::ParseRule - Class to describe the rule of how to parse
 
@@ -87,13 +96,13 @@ A rule, Proc, is defined by a user and is designed to receive either
 String (the first application only) or {PlainText::ParseRule} (Array)
 and to return a fully (or partially) parsed {PlainText::ParseRule}.
 In short, the rule descries how to determine from where to where a
-paragraphs and boundaries are located, and maybe what and where the
-sections and sub-sections and so on are.
+Paras and Boundaries are located — for example, what and where the
+sections and sub-sections are and so on are.
 
 For example, if a rule is Regexp, it describes how to split a String;
 it is applied to String in the first application, but if it is
-applied (and maybe registered as such) at the second or later stage,
-it is applied to each Paragraph and Section separately to split them further.
+applied (and maybe registered as such) at the second or later stages,
+it is applied to each Para separately to split them further.
 
 {PlainText::ParseRule#apply} and {PlainText::Part.parse} are the
 standard methods to apply the rules to an object (either String or

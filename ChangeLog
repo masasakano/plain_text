@@ -1,4 +1,9 @@
 -----
+(Version: 0.6)
+2019-11-07  Masa Sakano
+  * Introduces a new concept "Para" and accordingly renamed some methods like Part#parts to Part#paras
+
+-----
 (Version: 0.5.1)
 2019-11-07  Masa Sakano
   * Minor update of gemspec (for RubyGems.org).

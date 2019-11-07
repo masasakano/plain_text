@@ -124,7 +124,7 @@ end
 # @return [Integer]
 def min_indent(str, lb=$/)
   return 0 if str.empty?
-  lines = PlainText::Part.parse(str).parts.join("\n").split("\n")
+  lines = PlainText::Part.parse(str).paras.join("\n").split("\n")
   lines.map{|ec| indent_line(ec)}.min
 end
 
@@ -149,7 +149,7 @@ end
 # @return [Integer]
 def last_indent(str, indent_prev=0, lb=$/)
   return indent_prev if !str || str.empty?
-  lines = PlainText::Part.parse(str).parts.join("\n").split("\n")
+  lines = PlainText::Part.parse(str).paras.join("\n").split("\n")
   # Note: numsps = 2  # "2." takes up 2 spaces, whereas "12." takes 3.
   lines.each do |ec|
     cind = indent_line(ec)
@@ -184,10 +184,10 @@ opts = handle_argv()
 
 strin = ARGF.read
 ## split to paras, fixing inline code blocks
-mdpart = PlainText::Part.parse(strin)
+mdpara = PlainText::Part.parse(strin)
 
-indent_prev = last_indent(mdpart[0])
-mdpart.merge_para_if{ |pbp, _, _|
+indent_prev = last_indent(mdpara[0])
+mdpara.merge_para_if{ |pbp, _, _|
   prev_cb = md_code_block?(pbp[0], indent_prev)
   next_cb = md_code_block?(pbp[2], indent_prev)
   next true if prev_cb && next_cb
@@ -196,7 +196,7 @@ mdpart.merge_para_if{ |pbp, _, _|
 }
 
 indent_next = 0
-mdpart = mdpart.map_part{|ec|
+mdpara = mdpara.map_para{|ec|
   indent_prev = indent_next
   indent_next = last_indent(ec, indent_prev)
   next fix_string_based(ec) if !md_code_block?(ec, indent_prev)
@@ -205,7 +205,7 @@ mdpart = mdpart.map_part{|ec|
   "%s```%s\n%s\n%s```"%[inde, opts[:lang], st, inde, opts[:lang]]
 }
 
-puts mdpart.join('')
+puts mdpara.join('')
 
 exit
 

@@ -50,7 +50,7 @@ class TestUnitPlainTextPart < MiniTest::Test
     # p pt1.to_a.class
     assert_equal a1[0], pt1[0]
     assert_equal a1[1], pt1[1]
-    assert_equal ap1,   pt1.parts
+    assert_equal ap1,   pt1.paras
     assert_equal ab1,   pt1.boundaries
     assert_equal a1,    pt1.to_a
     assert_operator a1,  '!=', pt1
@@ -59,7 +59,7 @@ class TestUnitPlainTextPart < MiniTest::Test
     pt2 = Pt.new(a2)
     assert_equal a2[0], pt2[0]
     assert_equal a2[2], pt2[2]
-    assert_equal ap2,   pt2.parts
+    assert_equal ap2,   pt2.paras
     assert_equal ab2,   pt2.boundaries
     assert_equal a2+[""], pt2.to_a  # An empty String is appended.
     assert_operator a2,  '!=', pt2
@@ -196,7 +196,7 @@ class TestUnitPlainTextPart < MiniTest::Test
 
     pt2 = pt1[0, 4]
     assert_equal pt1.class,            pt2.class
-    assert_equal pt1.parts[0, 2],      pt2.parts
+    assert_equal pt1.paras[0, 2],      pt2.paras
     assert_equal pt1.boundaries[0, 2], pt2.boundaries
 
     # negative or too-big out-of-bound begin
@@ -337,7 +337,7 @@ class TestUnitPlainTextPart < MiniTest::Test
     #     0 1  2 3  4 5  6 7  8 9
     pt1 = Pt.parse s1
     assert_equal 10, pt1.size
-    assert_equal  5, pt1.parts.size
+    assert_equal  5, pt1.paras.size
     assert_equal "b\n\n",      pt1[2..3].join
 
     pt2 = pt1.dup
@@ -417,8 +417,8 @@ class TestUnitPlainTextPart < MiniTest::Test
     s1 = "a\n\n\nb\n\n\nc\n\n"
     pt1 = Pt.parse s1
     assert_equal 6, pt1.size
-    assert_equal 3, pt1.parts.size
-    assert_equal %w(a b c), pt1.parts
+    assert_equal 3, pt1.paras.size
+    assert_equal %w(a b c), pt1.paras
     assert_equal Pt::Paragraph, pt1[0].class
     assert_equal Pt::Boundary,  pt1[1].class
     assert_equal s1,  pt1.join

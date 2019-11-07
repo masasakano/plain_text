@@ -12,8 +12,8 @@ module PlainText
   # which returns an Array (referred to as +ary+ hereafter).
   #
   # The returned array +ary+ may contain Strings at the basic level.  In that case,
-  # any even elements are semantically {PlainText::Part::Boundary} and any odd elements are
-  # semantically {PlainText::Part::Paragraph} or {PlainText::Part}, which can be further parsed
+  # any odd-index elements are semantically Boundaries ({PlainText::Part::Boundary}) and any even-index elements are
+  # semantically Paras ({PlainText::Part::Paragraph} or {PlainText::Part}), which can be further parsed
   # in the later processing.
   #
   # Alternatively, the returned array +ary+ may contain
@@ -78,7 +78,7 @@ module PlainText
   #
   # Then,
   #
-  #   pt1.parts[0].parts[1] # => Paragraph::Title("Breaking!")
+  #   pt1.paras[0].paras[1] # => Paragraph::Title("Breaking!")
   #   pt1.boundaries[1]     # => Boundary("\n======\n")
   #
   # @todo

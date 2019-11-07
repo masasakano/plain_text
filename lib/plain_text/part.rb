@@ -42,7 +42,7 @@ module PlainText
   #     (5) Boundary::General
   #   )
   #
-  # A Section (Part) always has an even number of elements: pairs of ({Part}|{Paragraph}) and {Boundary} in this order.
+  # A Section (Part) always has an even number of elements: pairs of a Para ({Part}|{Paragraph}) and {Boundary} in this order.
   #
   # Note some standard destructive Array operations, most notably +#delete+, +#delete_if+, +#reject!+,
   # +#select!+, +#filter!+, +#keep_if+, +#flatten!+, +#uniq!+ may alter the content in a way
@@ -83,7 +83,7 @@ module PlainText
     }
     private_constant :ERR_MSGS
 
-    # @param arin [Array] of [Paragraph1, Boundary1, Para2, Bd2, ...] or Part/Paragraph if boundaries is given
+    # @param arin [Array] of [Paragraph1, Boundary1, Para2, Bd2, ...] or just Paragraphs if boundaries is given as the second arguments
     # @param boundaries [Array] of Boundary
     # @option recursive: [Boolean] if true (Default), normalize recursively.
     # @option compact: [Boolean] if true (Default), pairs of nil paragraph and boundary are removed.  Otherwise, nil is converted to an empty string.
@@ -122,10 +122,10 @@ module PlainText
     # Unique instance methods (not existing in Array)
     ##########
 
-    # Returns an array of boundary parts (odd-number-index parts), consisting of Boundaries
+    # Returns an array of boundaries (odd-number-index elements), consisting of Boundaries
     #
     # @return [Array<Boundary>]
-    # @see #parts
+    # @see #paras
     def boundaries
       select.with_index { |_, i| i.odd? } rescue select.each_with_index { |_, i| i.odd? } # Rescue for Ruby 2.1 or earlier
     end
@@ -167,20 +167,20 @@ module PlainText
       map_boundary_core(map: false, with_index: true, **kwd, &bl)
     end
 
-    # each method for parts only, providing also the index (always an even number) to the block.
+    # each method for Paras only, providing also the index (always an even number) to the block.
     #
-    # For just looping over the elements of {#parts}, do simply
+    # For just looping over the elements of {#paras}, do simply
     #
-    #   parts.each do |ec|
+    #   paras.each do |ec|
     #   end
     #
     # The indices provided in this method are for the main Array,
-    # and hence different from {#parts}.each_with_index
+    # and hence different from {#paras}.each_with_index
     #
-    # @param (see #map_part_with_index)
+    # @param (see #map_para_with_index)
     # @return as self
-    def each_part_with_index(**kwd, &bl)
-      map_part_core(map: false, with_index: false, **kwd, &bl)
+    def each_para_with_index(**kwd, &bl)
+      map_para_core(map: false, with_index: false, **kwd, &bl)
     end
 
     # The first significant (=non-empty) element.
@@ -210,7 +210,7 @@ module PlainText
     #
     # @param i [Integer] index for the array of self
     # @option skip_check: [Boolean] if true (Default: false), skip conversion of the negative index to positive.
-    # @see #parts
+    # @see #paras
     def index_para?(i, skip_check: false)
       skip_check ? i.even? : positive_array_index_checked(i, self).even?
     end
@@ -261,9 +261,9 @@ module PlainText
       map_boundary_core(with_index: true, **kwd, &bl)
     end
 
-    # map method for parts only, returning a copied self.
+    # map method for Paras only, returning a copied self.
     #
-    # If recursive is true (Default), any Paragraphs in the descendant Parts are also handled.
+    # If recursive is true (Default), any Paras in the descendant Parts are also handled.
     #
     # If a Paragraph is set nil or empty, along with the following Boundary,
     # the pair is removed from the returned instance in Default (:compact and :compacter options
@@ -272,30 +272,30 @@ module PlainText
     # @option recursive: [Boolean] if true (Default), map is performed recursively.
     # @return as self
     # @see #initialize for the other options (:compact and :compacter)
-    def map_part(**kwd, &bl)
-      map_part_core(with_index: false, **kwd, &bl)
+    def map_para(**kwd, &bl)
+      map_para_core(with_index: false, **kwd, &bl)
     end
 
-    # map method for parts only, providing also the index (always an even number) to the block, returning a copied self.
+    # map method for paras only, providing also the index (always an even number) to the block, returning a copied self.
     #
-    # @param (see #map_part)
+    # @param (see #map_para)
     # @return as self
-    def map_part_with_index(**kwd, &bl)
-      map_part_core(with_index: false, **kwd, &bl)
+    def map_para_with_index(**kwd, &bl)
+      map_para_core(with_index: false, **kwd, &bl)
     end
 
-    # merge parts/paragraphs if they satisfy the conditions.
+    # merge Paras if they satisfy the conditions.
     #
-    # A group of two Parts/Paragraphs and the Boundaries in between and before and after
+    # A group of two Paras and the Boundaries in between and before and after
     # is passed to the block consecutively.
     #
     # @yield [ary, b1, b2, i] Returns true if the two paragraphs should be merged.
     # @yieldparam [Array] ary of [Para1st, BoundaryBetween, Para2nd]
-    # @yieldparam [Boundary] b1 Boundary-String before the first part/paragraph (nil for the first one)
-    # @yieldparam [Boundary] b2 Boundary-String after the second part/paragraph
+    # @yieldparam [Boundary] b1 Boundary-String before the first Para (nil for the first one)
+    # @yieldparam [Boundary] b2 Boundary-String after the second Para
     # @yieldparam [Integer] i Index of the first Para
     # @yieldreturn [Boolean, Symbol] True if they should be merged.  :abort if cancel it.
-    # @return [self, false] false if no pairs of parts/paragraphs are merged, else self.
+    # @return [self, false] false if no pairs of Paras are merged, else self.
     def merge_para_if()
       arind2del = []  # Indices to delete (both paras and boundaries)
       each_index do |ei|
@@ -328,7 +328,7 @@ module PlainText
     # @overload set(range)
     #   With a range of the indices to merge. Unless use_para_index is true, this means the main Array index. See the first overload set about it.
     #   @param range [Range] describe value param
-    # @param use_para_index: [Boolean] If false (Default), the indices are for the main indices (alternative between Parts/Paragraphs and Boundaries, starting from Part/Paragraph). If true, the indices are as obtained with {#parts}, namely the array containing only Parts/Paragraphs.
+    # @param use_para_index: [Boolean] If false (Default), the indices are for the main indices (alternative between Paras and Boundaries, starting from Para). If true, the indices are as obtained with {#paras}, namely the array containing only Paras.
     # @return [self, nil] nil if nothing is merged (because of wrong indices).
     def merge_para!(*rest, use_para_index: false)
 $myd = true
@@ -449,11 +449,11 @@ $myd = false
     end
 
 
-    # Returns an array of substantial parts (even-number-index parts), consisting of Part and/or Paragraph
+    # Returns an array of Paras (even-number-index elements), consisting of Part and/or Paragraph
     #
     # @return [Array<Part, Paragraph>]
     # @see #boundaries
-    def parts
+    def paras
       select.with_index { |_, i| i.even? } rescue select.each_with_index { |_, i| i.even? } # Rescue for Ruby 2.1 or earlier
       # ret.freeze
     end
@@ -581,7 +581,7 @@ $myd = false
     # @param other [Object]
     def ==(other)
       return false if !other.class.method_defined?(:to_ary)
-      %i(parts boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
+      %i(paras boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
         return false if !other.class.method_defined?(ea_m) || (self.public_send(ea_m) != other.public_send(ea_m))  # public_send() defined in Ruby 2.0 (1.9?) and later
       end
       super
@@ -603,20 +603,20 @@ $myd = false
     # @return as self
     def +(other)
       # ## The following is strict, but a bit redundant.
-      # # is_part = true  # Whether "other" is a Part class instance.
-      # # %i(to_ary parts boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
-      # #   is_part &&= other.class.method_defined?(ea_m)
+      # # is_para = true  # Whether "other" is a Part class instance.
+      # # %i(to_ary paras boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
+      # #   is_para &&= other.class.method_defined?(ea_m)
       # # end
 
       # begin
       #   other_even_odd = 
-      #     ([other.parts, other.boundaries] rescue even_odd_arrays(self, size_even: true, filler: ""))
+      #     ([other.paras, other.boundaries] rescue even_odd_arrays(self, size_even: true, filler: ""))
       # rescue NoMethodError
       #   raise TypeError, sprintf("no implicit conversion of %s into %s", other.class.name, self.class.name)
       # end
 
       # # eg., if self is PlainText::Part::Section, the returned object is the same.
-      # ret = self.class.new(self.parts+other_even_odd[0], self.boundaries+other_even_odd[1])
+      # ret = self.class.new(self.paras+other_even_odd[0], self.boundaries+other_even_odd[1])
       ret = self.class.new super
       ret.normalize!
     end
@@ -733,7 +733,7 @@ $myd = false
       # The result may not be in an even number anymore.  Correct it.
       Boundary.insert_original_b4_part(size, "") if size.odd?
 
-      # Original method may fill some part of the array with String or even nil.  
+      # Original method may fill some elements of the array with String or even nil.  
       normalize!
       ret
     end
@@ -892,7 +892,7 @@ $myd = false
     # @return [Integer, nil] nil if a too large index is specified.
     def get_valid_ipos_for_boundary(index)
       i_pos = positive_array_index_checked(index, self)
-      raise ArgumentError, "Index #{index} specified was for Part/Paragraph, which should be for Boundary." if index_para?(i_pos, skip_check: true)
+      raise ArgumentError, "Index #{index} specified was for Para, which should be for Boundary." if index_para?(i_pos, skip_check: true)
       (i_pos > size - 1) ? nil : i_pos
     end
     private :get_valid_ipos_for_boundary
@@ -920,16 +920,16 @@ $myd = false
     end
     private :map_boundary_core
 
-    # Core routine for {#map_part}
+    # Core routine for {#map_para}
     #
     # @option map: [Boolean] if true (Default), map is performed. Else just each.
     # @option with_index: [Boolean] if true (Default: false), yield with also index
     # @option recursive: [Boolean] if true (Default), map is performed recursively.
     # @return as self
     # @see #initialize for the other options (:compact and :compacter)
-    def map_part_core(map: true, with_index: false, recursive: true, **kwd, &bl)
+    def map_para_core(map: true, with_index: false, recursive: true, **kwd, &bl)
       ind = -1
-      new_parts = parts.map{ |ec|
+      new_paras = paras.map{ |ec|
         ind += 1
         if recursive && ec.class.method_defined?(__method__)
           ec.public_send(__method__, recursive: true, **kwd, &bl)
@@ -937,9 +937,9 @@ $myd = false
           with_index ? yield(ec, ind) : yield(ec)
         end
       }
-      self.class.new new_parts, boundaries, recursive: recursive, **kwd if map
+      self.class.new new_paras, boundaries, recursive: recursive, **kwd if map
     end
-    private :map_part_core
+    private :map_para_core
 
     # Core routine for {#normalize!} and {#normalize}
     #
@@ -1051,7 +1051,7 @@ class Array
   # @param other [Object]
   def ==(other)
     return false if !other.class.method_defined?(:to_ary)
-    %i(parts boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
+    %i(paras boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
       return equal_original_b4_part?(other) if !other.class.method_defined?(ea_m)
       return false if !self.class.method_defined?(ea_m) || (self.public_send(ea_m) != other.public_send(ea_m))  # public_send() defined in Ruby 2.0 (1.9?) and later
     end
