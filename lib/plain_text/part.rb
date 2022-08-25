@@ -328,7 +328,7 @@ module PlainText
     # @overload set(range)
     #   With a range of the indices to merge. Unless use_para_index is true, this means the main Array index. See the first overload set about it.
     #   @param range [Range] describe value param
-    # @param use_para_index: [Boolean] If false (Default), the indices are for the main indices (alternative between Paras and Boundaries, starting from Para). If true, the indices are as obtained with {#paras}, namely the array containing only Paras.
+    # @param use_para_index [Boolean] If false (Default), the indices are for the main indices (alternative between Paras and Boundaries, starting from Para). If true, the indices are as obtained with {#paras}, namely the array containing only Paras.
     # @return [self, nil] nil if nothing is merged (because of wrong indices).
     def merge_para!(*rest, use_para_index: false)
 $myd = true
@@ -348,7 +348,7 @@ $myd = true
     # while Boundary(5) stays as it is.
     #
     # @param (see #merge_para!)
-    # @param use_para_index: [Boolean] false
+    # @param use_para_index [Boolean] false
     # @return [Range, nil] nil if no range is selected.
     def build_index_range_for_merge_para!(*rest, use_para_index: false)
 #warn "DEBUG:b0: #{rest.inspect} to_a=#{to_a}\n"
@@ -460,10 +460,9 @@ $myd = false
 
     # Reparses self or a part of it.
     #
-    # @param str [String]
-    # @option rule: [PlainText::ParseRule] (PlainText::ParseRule::RuleConsecutiveLbs)
-    # @option name: [String, Symbol, Integer, nil] Identifier of rule, if need to specify.
-    # @option range: [Range, nil] Range of indices of self to reparse. In Default, the entire self.
+    # @option rule [PlainText::ParseRule] (PlainText::ParseRule::RuleConsecutiveLbs)
+    # @option name [String, Symbol, Integer, nil] Identifier of rule, if need to specify.
+    # @option range [Range, nil] Range of indices of self to reparse. In Default, the entire self.
     # @return [self]
     def reparse!(rule: PlainText::ParseRule::RuleConsecutiveLbs, name: nil, range: (0..-1))
       insert range.begin, self.class.parse((range ? self[range] : self), rule: rule, name: name)
@@ -825,7 +824,7 @@ $myd = false
     #
     # @see #insert
     #
-    # @param *rest [Array<Array>]
+    # @param rest [Array<Array>]
     # @return [self]
     def concat(*rest)
       insert(size, *(rest.sum([])))
@@ -835,7 +834,7 @@ $myd = false
     #
     # @see #concat
     #
-    # @param ary [Array]
+    # @param rest [Array]
     # @return [self]
     def push(*rest)
       concat(rest)

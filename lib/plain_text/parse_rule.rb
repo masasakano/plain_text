@@ -122,7 +122,7 @@ module PlainText
     # Optionally, when a non-Array argument or block is given, a name can be specified as the human-readable name for the rule.
     #
     # @option rule [ParseRule, Array, Regexp, Proc]
-    # @param name: [String, Symbol]
+    # @param name [String, Symbol]
     #
     # @yield [inprm] Block to register.
     # @yieldparam [String, Array<Part, Paragraph, Boundary>, Part] inprm Input String/Part/Array to apply the rule to.
@@ -221,7 +221,7 @@ module PlainText
     # Optionally, providing non-Array argument or block is given, a name can be specified as the human-readable name for the rule.
     #
     # @option *rule [Regexp, Proc]
-    # @param name: [String, Symbol, NilClass, Array<String, Symbol, NilClass>]  Array is not supported, yet.
+    # @param name [String, Symbol, NilClass, Array<String, Symbol, NilClass>]  Array is not supported, yet.
     # @return [self]
     #
     # @yield [inprm] Block to register.
@@ -398,7 +398,7 @@ module PlainText
     #     #=> ["abc", "==", "DEF", "==\n"])
     #
     # @param inprm [String, Array, PlainText::Part]
-    # @param index: [Array, Range, Integer, String, Symbol] If given, the rule(s) at the given index (indices) or key(s) only are applied in the given order.
+    # @param index [Array, Range, Integer, String, Symbol] If given, the rule(s) at the given index (indices) or key(s) only are applied in the given order.
     # @return [Array] array of String, Paragraph, Boundary, Array, Part, etc
     def apply(inprm, index: nil, from_string: true, from_array: true)
       allrules = (index ? rules_at(index) : @rules)

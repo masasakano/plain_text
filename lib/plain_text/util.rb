@@ -44,8 +44,8 @@ module PlainText
     #    # => [[33, 55], [44, ""]]
     #
     # @param ary [Array]
-    # @param size_even: [Boolean] if true (Def: false), the sizes of the returned arrays are guaranteed to be identical.
-    # @param filler: [Object] if size_even: is true and if matching is performed, this filler is added at the end of the last element.
+    # @param size_even [Boolean] if true (Def: false), the sizes of the returned arrays are guaranteed to be identical.
+    # @param filler [Object] if size_even: is true and if matching is performed, this filler is added at the end of the last element.
     def even_odd_arrays(ary, size_even: false, filler: "")
       ar_even = select.with_index { |_, i| i.even? } rescue select.each_with_index { |_, i| i.even? } # Rescue for Ruby 2.1 or earlier
       ar_odd  = select.with_index { |_, i| i.odd? }  rescue select.each_with_index { |_, i| i.odd? }  # Rescue for Ruby 2.1 or earlier
@@ -83,8 +83,8 @@ module PlainText
     #
     # @param index_in [Integer] Index to check and convert from. Potentially negative integer.
     # @param ary [Array, Integer, nil] Reference Array or its size (Array#size) or nil (interpreted as self#size (untested)).
-    # @param accept_too_big: [Boolean, NilClass] if true (Default), a positive index larger than the last array index is returned as it is. If nil, the last index + 1 is accepted but raises an Exception for anything larger.  If false, any index larger than the last index raises an Exception.
-    # @param varname: [NilClass, String] Name of the variable (or nil) to be used for error messages.
+    # @param accept_too_big [Boolean, NilClass] if true (Default), a positive index larger than the last array index is returned as it is. If nil, the last index + 1 is accepted but raises an Exception for anything larger.  If false, any index larger than the last index raises an Exception.
+    # @param varname [NilClass, String] Name of the variable (or nil) to be used for error messages.
     # @return [Integer] Non-negative index; i.e., if index=-1 is specified for an Array with a size of 3, the returned value is 2 (the last index of it).
     # @raise [IndexError] if the index is out of the range to negative.
     # @raise [ArgumentError] if ary is neither an Array nor Integer, or more specifically, it does not have size method or ary.size does not return Integer or similar.
@@ -115,8 +115,8 @@ module PlainText
     #
     # @param from [Array, Range]
     # @param arref [Array, Integer] Reference Array or its size (Array#size) or nil (interpreted as self#size).
-    # @param flatten: [Boolean] If true (Default), if elements are Range, they are unfolded.  If false and if an Array containing a Range, Exception is raised.
-    # @param sortuniq: [Boolean] If true (Default), the return is sorted and uniq-ed.
+    # @param flatten [Boolean] If true (Default), if elements are Range, they are unfolded.  If false and if an Array containing a Range, Exception is raised.
+    # @param sortuniq [Boolean] If true (Default), the return is sorted and uniq-ed.
     # @return [Array, nil] nil if arref is empty or if out of range to the negative.  Note in most cases in Ruby default, it raises IndexError.  See the code of {#positive_array_index_checked}
     # @raise [TypeError] if non-integer is specified.
     # @raise [ArgumentError] if arref is neither an Array nor Integer, or more specifically, it does not have size method or arref.size does not return Integer or similar.

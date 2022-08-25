@@ -131,18 +131,18 @@ module PlainText
   #   /(\A[[:blank:]]+|\n[[:space:]]+)/
   #
   # @param prt [PlainText:Part, String] {Part} or String to examine.
-  # @param preserve_paragraph: [Boolean] Paragraphs are taken into account if true (Def: False). In the input, paragraphs are defined to be separated with more than one +lb+ with potentially some space characters in between. Their output style is specified with +boundary_style+.
-  # @param boundary_style: [String, Symbol] One of +(:truncate|:truncate2|:delete|:none)+ or String. If String, the boundaries between paragraphs are replaced with this String (Def: +lb_out*2+).  If +:truncate+, consecutive linebreaks and spaces are truncated into 2 linebreaks.   +:truncate2+ are similar, but they are not truncated beyond 3 linebreaks (ie., up to 2 blank lines between Paragraphs). If +:none+, nothing is done about them. Unless :none, all the white spaces between linebreaks are deleted.
-  # @param lbs_style: [Symbol] One of +(:truncate|:delete|:none)+ (Def: +:truncate+).  If :delete, all the linebreaks within paragraphs are deleted.  +:truncate+ is meaningful only when +preserve_paragraph=false+ and consecutive linebreaks are truncated into 1 linebreak.
-  # @param sps_style: [Symbol] One of +(:truncate|:delete|:none)+ (Def: +:truncate+).  If +:truncate+, the consecutive white spaces within paragraphs, *except* for those at the line-head or line-tail (which are controlled by +linehead_style+ and +linehead_style+, respectively), are truncated into a single white space. If :delete, they are deleted.
-  # @param lb_is_space: [Boolean] If true, a line-break, except those for the boundaries (unless +preserve_paragraph+ is false), is equivalent to a space (Def: False).
-  # @param delete_asian_space: [Boolean] Any spaces between, before, after Asian characters (but punctuation) are deleted, if true (Default).
-  # @param linehead_style: [Symbol] One of +(:truncate|:delete|:none)+ (Def: :none). Determine how to handle consecutive white spaces at the beggining of each line.
-  # @param linetail_style: [Symbol] One of +(:truncate|:delete|:markdown|:none)+ (Def: :delete). Determine how to handle consecutive white spaces at the end of each line.  If +:markdown, 1 space is always deleted, and two or more spaces are truncated into two ASCII whitespaces *if* the last two spaces are ASCII whitespaces, or else untouched.
-  # @param firstlbs_style: [Symbol, String] One of +(:truncate|:delete|:none)+ or String (Def: :default). If +:truncate+, any linebreaks at the very beginning of self (and whitespaces in between), if exist, are truncated to a single linebreak.  If String, they are, even if not exists, replaced with the specified String (such as a linebreak).  If +:delete+, they are deleted.  Note This option has nothing to do with the whitespaces at the beginning of the first significant line (hence the name of the option).  Note if a (random) Part is given, this option only considers the first significant element of it.
-  # @param lastsps_style: [Symbol, String] One of +(:truncate|:delete|:none|:linebreak)+ or String (Def: :truncate). If +:truncate+, any of linebreaks *AND* white spaces at the tail of self, if exist, are truncated to a single linebreak.  If +:delete+, they are deleted.  If String, they are, even if not exists, replaced with the specified String (such as a linebreak, in which case +lb_out+ is used as String, i.e., it guarantees only 1 linebreak to exist at the end of the String).  Note if a (random) Part is given, this option only considers the last significant element of it.
-  # @param lb: [String] Linebreak character like +\n+ etc (Default: $/). If this is one of the standard line-breaks, irregular line-breaks (for example, existence of CR when only LF should be there) are corrected.
-  # @param lb_out: [String] Linebreak used for output (Default: +lb+)
+  # @param preserve_paragraph [Boolean] Paragraphs are taken into account if true (Def: False). In the input, paragraphs are defined to be separated with more than one +lb+ with potentially some space characters in between. Their output style is specified with +boundary_style+.
+  # @param boundary_style [String, Symbol] One of +(:truncate|:truncate2|:delete|:none)+ or String. If String, the boundaries between paragraphs are replaced with this String (Def: +lb_out*2+).  If +:truncate+, consecutive linebreaks and spaces are truncated into 2 linebreaks.   +:truncate2+ are similar, but they are not truncated beyond 3 linebreaks (ie., up to 2 blank lines between Paragraphs). If +:none+, nothing is done about them. Unless :none, all the white spaces between linebreaks are deleted.
+  # @param lbs_style [Symbol] One of +(:truncate|:delete|:none)+ (Def: +:truncate+).  If :delete, all the linebreaks within paragraphs are deleted.  +:truncate+ is meaningful only when +preserve_paragraph=false+ and consecutive linebreaks are truncated into 1 linebreak.
+  # @param sps_style [Symbol] One of +(:truncate|:delete|:none)+ (Def: +:truncate+).  If +:truncate+, the consecutive white spaces within paragraphs, *except* for those at the line-head or line-tail (which are controlled by +linehead_style+ and +linehead_style+, respectively), are truncated into a single white space. If :delete, they are deleted.
+  # @param lb_is_space [Boolean] If true, a line-break, except those for the boundaries (unless +preserve_paragraph+ is false), is equivalent to a space (Def: False).
+  # @param delete_asian_space [Boolean] Any spaces between, before, after Asian characters (but punctuation) are deleted, if true (Default).
+  # @param linehead_style [Symbol] One of +(:truncate|:delete|:none)+ (Def: :none). Determine how to handle consecutive white spaces at the beggining of each line.
+  # @param linetail_style [Symbol] One of +(:truncate|:delete|:markdown|:none)+ (Def: :delete). Determine how to handle consecutive white spaces at the end of each line.  If +:markdown, 1 space is always deleted, and two or more spaces are truncated into two ASCII whitespaces *if* the last two spaces are ASCII whitespaces, or else untouched.
+  # @param firstlbs_style [Symbol, String] One of +(:truncate|:delete|:none)+ or String (Def: :default). If +:truncate+, any linebreaks at the very beginning of self (and whitespaces in between), if exist, are truncated to a single linebreak.  If String, they are, even if not exists, replaced with the specified String (such as a linebreak).  If +:delete+, they are deleted.  Note This option has nothing to do with the whitespaces at the beginning of the first significant line (hence the name of the option).  Note if a (random) Part is given, this option only considers the first significant element of it.
+  # @param lastsps_style [Symbol, String] One of +(:truncate|:delete|:none|:linebreak)+ or String (Def: :truncate). If +:truncate+, any of linebreaks *AND* white spaces at the tail of self, if exist, are truncated to a single linebreak.  If +:delete+, they are deleted.  If String, they are, even if not exists, replaced with the specified String (such as a linebreak, in which case +lb_out+ is used as String, i.e., it guarantees only 1 linebreak to exist at the end of the String).  Note if a (random) Part is given, this option only considers the last significant element of it.
+  # @param lb [String] Linebreak character like +\n+ etc (Default: $/). If this is one of the standard line-breaks, irregular line-breaks (for example, existence of CR when only LF should be there) are corrected.
+  # @param lb_out [String] Linebreak used for output (Default: +lb+)
   # @return same as prt
   #
   def self.clean_text(
@@ -587,9 +587,9 @@ module PlainText
   # if num is +/ABC/+ (Regexp), String of the lines from the beginning up to the line that contains the character +"ABC"+ is returned.
   #
   # @param num_in [Integer, Regexp] Number (positive or negative, but not 0) of :unit to extract (Def: 10), or Regexp, which is valid only if unit is :line.
-  # @param unit: [Symbol, String] One of +:line+ (or +"-n"+), :+char+, +:byte+ (or +"-c"+)
-  # @param inclusive: [Boolean] read only when unit is :line. If inclusive (Default), the (entire) line that matches is included in the result.
-  # @param linebreak: [String] +\n+ etc (Default: +$/+), used when +unit==:line+ (Default)
+  # @param unit [Symbol, String] One of +:line+ (or +"-n"+), :+char+, +:byte+ (or +"-c"+)
+  # @param inclusive [Boolean] read only when unit is :line. If inclusive (Default), the (entire) line that matches is included in the result.
+  # @param linebreak [String] +\n+ etc (Default: +$/+), used when +unit==:line+ (Default)
   # @return [String] as self
   def head(num_in=DEF_HEADTAIL_N_LINES, unit: :line, inclusive: true, padding: 0, linebreak: $/)
     if num_in.class.method_defined? :to_int
@@ -670,10 +670,10 @@ module PlainText
 
   # String#strip! for each line
   #
-  # @param strip_head: [Boolean] if true (Default), spaces at each line head are removed.
-  # @param strip_tail: [Boolean] if true (Default), spaces at each line tail are removed (see +markdown+ option).
-  # @param markdown: [Boolean] if true (Def: false), a double space at each tail remains and +strip_head+ is forcibly false.
-  # @param linebreak: [String] +\n+ etc (Default: +$/+)
+  # @param strip_head [Boolean] if true (Default), spaces at each line head are removed.
+  # @param strip_tail [Boolean] if true (Default), spaces at each line tail are removed (see +markdown+ option).
+  # @param markdown [Boolean] if true (Def: false), a double space at each tail remains and +strip_head+ is forcibly false.
+  # @param linebreak [String] +\n+ etc (Default: +$/+)
   # @return [self, NilClass] nil if gsub! does not match at all, i.e., there are no spaces to remove.
   def strip_at_lines!(strip_head: true, strip_tail: true, markdown: false, linebreak: $/)
     strip_head = false if markdown
@@ -695,7 +695,7 @@ module PlainText
 
   # String#strip! for each line but only for the head part (NOT tail part)
   #
-  # @param linebreak: [String] "\n" etc (Default: $/)
+  # @param linebreak [String] "\n" etc (Default: $/)
   # @return [self, NilClass] nil if gsub! does not match at all, i.e., there are no spaces to remove.
   def strip_at_lines_head!(linebreak: $/)
     lb_quo = Regexp.quote linebreak
@@ -714,8 +714,8 @@ module PlainText
 
   # String#strip! for each line but only for the tail part (NOT head part)
   #
-  # @param markdown: [Boolean] if true (Def: false), a double space at each tail remains.
-  # @param linebreak: [String] "\n" etc (Default: $/)
+  # @param markdown [Boolean] if true (Def: false), a double space at each tail remains.
+  # @param linebreak [String] "\n" etc (Default: $/)
   # @return [self, NilClass] nil if gsub! does not match at all, i.e., there are no spaces to remove.
   def strip_at_lines_tail!(markdown: false, linebreak: $/)
     lb_quo = Regexp.quote linebreak
@@ -775,9 +775,9 @@ module PlainText
   # *all the lines from Line 1* would be included, which is most likely not what the caller wants.
   #
   # @param num_in [Integer, Regexp] Number (positive or negative, but not 0) of :unit to extract (Def: 10), or Regexp, which is valid only if unit is :line.  If positive, the last num_in lines are returned.  If negative, the lines from the num-in-th line from the head are returned. In short, calling this method as +tail(3)+ and +tail(-3)+ is similar to the UNIX commands "tail -n 3" and "tail -n +3", respectively.
-  # @param unit: [Symbol] One of :line (as in -n option), :char, :byte (-c option)
-  # @param inclusive: [Boolean] read only when unit is :line. If inclusive (Default), the (entire) line that matches is included in the result.
-  # @param linebreak: [String] +\n+ etc (Default: +$/+), used when unit==:line (Default)
+  # @param unit [Symbol] One of :line (as in -n option), :char, :byte (-c option)
+  # @param inclusive [Boolean] read only when unit is :line. If inclusive (Default), the (entire) line that matches is included in the result.
+  # @param linebreak [String] +\n+ etc (Default: +$/+), used when unit==:line (Default)
   # @return [String] as self
   def tail(num_in=DEF_HEADTAIL_N_LINES, unit: :line, inclusive: true, padding: 0, linebreak: $/)
 
@@ -836,9 +836,9 @@ module PlainText
   # @todo Improve the algorithm like {#tail_regexp}
   #
   # @param re_in [Regexp] Regexp to determine the boundary.
-  # @param inclusive: [Boolean] If true (Default), the (entire) line that matches re_in is included in the result. Else the entire line is excluded.
-  # @param padding: [Integer] Add (postive/negative) the number of lines returned.
-  # @param linebreak: [String] +\n+ etc (Default: $/).
+  # @param inclusive [Boolean] If true (Default), the (entire) line that matches re_in is included in the result. Else the entire line is excluded.
+  # @param padding [Integer] Add (postive/negative) the number of lines returned.
+  # @param linebreak [String] +\n+ etc (Default: $/).
   # @return [String] as self
   # @see #head
   def head_regexp(re_in, inclusive: true, padding: 0, linebreak: $/)
@@ -899,7 +899,7 @@ module PlainText
   #   pre_match_in_line(      "__abc")  # => #<MatchData "__abc"> pre_match=="     "
   #
   # @param strpre [String] String of prematch of the last MatchData
-  # @param linebreak: [String] +\n+ etc (Default: $/)
+  # @param linebreak [String] +\n+ etc (Default: $/)
   # @return [MatchData] m[0] is the string after the last linebreak before the matched data (exclusive) and m.pre_match is all the lines before that.
   def pre_match_in_line(strpre, linebreak: $/)
     lb_quo = Regexp.quote linebreak
@@ -918,7 +918,7 @@ module PlainText
   #
   # @param mat [MatchData, String] If String, it is User's (last) matched String.
   # @param strpre [String, nil] Pre-match from the beginning of self to the mathced string, if mat is String.
-  # @param linebreak: [String] +\n+ etc (Default: $/)
+  # @param linebreak [String] +\n+ etc (Default: $/)
   # @return [Hash<Integer, nil>] 4 keys: :last_prematch, :first_matched, :last_matched, :first_post_match
   def _matched_line_indices(mat, strpre=nil, linebreak: $/)
     if mat.class.method_defined? :post_match
@@ -966,7 +966,7 @@ module PlainText
   #
   # @param mat [MatchData, String] If String, it is User's (last) matched String.
   # @param strpost [String, nil] Post-match, if mat is String.  After User's last match.
-  # @param linebreak: [String] +\n+ etc (Default: $/)
+  # @param linebreak [String] +\n+ etc (Default: $/)
   # @return [MatchData] m[0] is the string after matched data and up to the next first linebreak (inclusive) (or empty string if the last character(s) of matched data is the linebreak) and m.post_match is all the lines after that.  (maybe nil?? not sure...)
   def post_match_in_line(mat, strpost=nil, linebreak: $/)
     lb_quo = Regexp.quote linebreak
@@ -994,8 +994,8 @@ module PlainText
   # 6. pass it to {#head_inverse} (after Line-1).
   #
   # @param re_in [Regexp] Regexp to determine the boundary.
-  # @param inclusive: [Boolean] If true (Default), the (entire) line that matches re_in is included in the result. Else the entire line is excluded.
-  # @param linebreak: [String] +\n+ etc (Default: $/).
+  # @param inclusive [Boolean] If true (Default), the (entire) line that matches re_in is included in the result. Else the entire line is excluded.
+  # @param linebreak [String] +\n+ etc (Default: $/).
   # @return [String] as self
   # @see #tail
   def tail_regexp(re_in, inclusive: true, padding: 0, linebreak: $/)
@@ -1030,7 +1030,7 @@ module PlainText
   #
   # @param num_in [Integer] Original argument of the specified number of lines
   # @param num [Integer] Converted integer for num_in
-  # @param linebreak: [String] +\n+ etc (Default: $/).
+  # @param linebreak [String] +\n+ etc (Default: $/).
   # @return [String] as self
   # @see #tail
   def tail_linenum(num_in, num, linebreak: $/)

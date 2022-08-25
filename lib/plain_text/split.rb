@@ -52,8 +52,8 @@ module PlainText
     #
     # @param instr [String] String that is examined.
     # @param re_in [Regexp, String] If String, it is interpreted literally as in String#split.
-    # @param like_linenum: [Boolean] if true (Def: false), it counts like the line number.
-    # @param with_if_end: [Boolean] a special case (see the description).
+    # @param like_linenum [Boolean] if true (Def: false), it counts like the line number.
+    # @param with_if_end [Boolean] a special case (see the description).
     # @return [Integer] always positive
     # @see PlainText::Split#count_regexp
     def self.count_regexp(instr, re_in, like_linenum: false, with_if_end: false)
@@ -72,7 +72,7 @@ module PlainText
     # One more parameter (input String) is required to specify.
     #
     # @param instr [String] String that is examined.
-    # @param linebreak: [String] +\n+ etc (Default: $/).
+    # @param linebreak [String] +\n+ etc (Default: $/).
     # @return [Integer] always positive
     # @see #count_lines
     def self.count_lines(instr, linebreak: $/)
@@ -124,7 +124,7 @@ module PlainText
     #   s.split_with_delimiter(/X+(Q?)/)
     #                           #=> ["", "XQ", "ab", "XX", "c", "XQ"]
     #
-    # @param re_in [Regexp, String] If String, it is interpreted literally as in String#split.
+    # @param rest [Regexp, String] If String, it is interpreted literally as in String#split.
     # @return [Array]
     def split_with_delimiter(*rest)
       PlainText::Split.public_send(__method__, self, *rest)
@@ -150,9 +150,10 @@ module PlainText
     # (This parameter is introduced just to reduce the overhead of
     # potentially calling this routine twice or user's making their own check.)
     #
-    # @param re_in [Regexp, String] If String, it is interpreted literally as in String#split.
-    # @param like_linenum: [Boolean] if true (Def: false), it counts like the line number.
-    # @param with_if_end: [Boolean] a special case (see the description).
+    # @param rest [Regexp, String] re_in: If String, it is interpreted literally as in String#split.
+    # @param kwd [Hash<like_linenum: Boolean, with_if_end: Boolean>]
+    #    if like_linenum: true (Def: false), it counts like the line number.
+    #    with_if_end: a special case (see the description).
     # @return [Integer, Array<Integer, Boolean>] always positive
     # @see PlainText::Split#count_regexp
     def count_regexp(*rest, **kwd)
@@ -161,7 +162,7 @@ module PlainText
 
     # Returns the number of lines.
     #
-    # @param linebreak: [String] +\n+ etc (Default: $/).
+    # @param kwd [Hash<linebreak: String>] +\n+ etc (Default: $/).
     # @return [Integer] always positive
     # @see PlainText::Split#count_regexp
     def count_lines(**kwd)

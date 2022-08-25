@@ -5,7 +5,7 @@ require 'date'
 
 Gem::Specification.new do |s|
   s.name = %q{plain_text}.sub(/.*/){|c| (c == File.basename(Dir.pwd)) ? c : raise("ERROR: s.name=(#{c}) in gemspec seems wrong!")}
-  s.version = "0.6".sub(/.*/){|c| fs = Dir.glob('changelog{,.*}', File::FNM_CASEFOLD); raise('More than one ChangeLog exist!') if fs.size > 1; warn("WARNING: Version(s.version=#{c}) already exists in #{fs[0]} - ok?") if fs.size == 1 && !IO.readlines(fs[0]).grep(/^\(Version: #{Regexp.quote c}\)$/).empty? ; c }  # n.b., In macOS, changelog and ChangeLog are identical in default.
+  s.version = "0.7".sub(/.*/){|c| fs = Dir.glob('changelog{,.*}', File::FNM_CASEFOLD); raise('More than one ChangeLog exist!') if fs.size > 1; warn("WARNING: Version(s.version=#{c}) already exists in #{fs[0]} - ok?") if fs.size == 1 && !IO.readlines(fs[0]).grep(/^\(Version: #{Regexp.quote c}\)$/).empty? ; c }  # n.b., In macOS, changelog and ChangeLog are identical in default.
   # s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.bindir = 'bin'
   %w(countchar textclean head.rb tail.rb yard2md_afterclean).each do |f|
@@ -13,12 +13,12 @@ Gem::Specification.new do |s|
     File.executable?(path) ? s.executables << f : raise("ERROR: Executable (#{path}) is not executable!")
   end
   s.authors = ["Masa Sakano"]
-  s.date = %q{2019-11-07}.sub(/.*/){|c| (Date.parse(c) == Date.today) ? c : raise("ERROR: s.date=(#{c}) is not today!")}
+  s.date = %q{2022-08-25}.sub(/.*/){|c| (Date.parse(c) == Date.today) ? c : raise("ERROR: s.date=(#{c}) is not today!")}
   s.summary = %q{Module to handle Plain-Text}
   s.description = %q{This module provides utility functions and methods to handle plain text, classes Part/Paragraph/Boundary to represent the logical structure of a document and ParseRule to describe the rules to parse plain text to produce a Part-type Ruby instance. A few handy Ruby executable scripts to make use of them are included.}
   # s.email = %q{abc@example.com}
   s.extra_rdoc_files = [
-    # "LICENSE",
+    # "LICENSE.txt",
      "README.en.rdoc",
   ]
   s.license = 'MIT'
