@@ -9,7 +9,7 @@ the logical structure of a document and another class ParseRule, which
 describes the rules to parse plain text to produce a Part-type Ruby instance.
 This package also provides a few command-line programs, such as counting the
 number of characters (especially useful for documents in Asian (CJK)
-chatacters) and advanced head/tail commands.
+characters) and advanced head/tail commands.
 
 The master of this README file, as well as the document for all the methods,
 is found in [RubyGems/plain_text](https://rubygems.org/gems/plain_text) and in
@@ -38,7 +38,7 @@ are sub-classes of String.
 
 An example instance looks like this:
 
-```ruby
+```text
 Part (
   (0) Paragraph::Empty,
   (1) Boundary::General,
@@ -117,8 +117,8 @@ Counts the number of characters in a file(s) or STDIN.
 
 The simplest example to run the command-line script is
 
-```ruby
-countchar YourFile.txt
+```sh
+% countchar YourFile.txt
 ```
 
 ### textclean
@@ -137,37 +137,37 @@ This gives advanced functions, in addition to the standard `head`, including
     first-matched line), including ignore-case, multi-line, extra
     &lt;strong&gt;padding-line&lt;/strong&gt; etc.</dd>
 <dt>Character-based</dt>
-<dd>   With &lt;tt&gt;--char&lt;/tt&gt; option, it handles the file in units of a chracter, which is
-    especially handy to deal with multi-byte characters like UTF-8.</dd>
+<dd>   With &lt;tt&gt;--char&lt;/tt&gt; option, it handles the file in units of a character, which
+    is especially handy to deal with multi-byte characters like UTF-8.</dd>
 <dt>Reverse</dt>
-<dd>   It can &lt;strong&gt;reverese&lt;/strong&gt; the behaviour - inverse the counting to ouput
-    everything but initial NUM lines</dd>
+<dd>   It can &lt;strong&gt;reverse&lt;/strong&gt; the behaviour - inverse the counting to output
+    everything but initial NUM lines.</dd>
 </dl>
 
 
 
 A few examples are
 
-```ruby
-head.rb -n 5 < try.txt
+```sh
+% head.rb -n 5 < try.txt
   # the same as the UNIX head; printing the first 5 lines
 
-head.rb -i -n 5 try.txt
+% head.rb -i -n 5 try.txt
   # printing everything but the first 5 lines
   # The same as the UNIX command:  tail -n +5
 
-head.rb -e '^===+' try.txt
+% head.rb -e '^===+' try.txt
   # => from the top up to the line that begins with more than 3 "="
 
-head.rb -x -e '^===+' try.txt
+% head.rb -x -e '^===+' try.txt
   # => from the top up to the line before what begins with more than 3 "="
 
-head.rb -e '^===+' -p 3 try.txt
+% head.rb -e '^===+' -p 3 try.txt
   # => from the top up to 3 lines after what begins with more than 3 "="
 
-head.rb -e '([a-z])\1$' --padding=-2 try.txt
+% head.rb -e '([a-z])\1$' --padding=-2 try.txt
   # => from the top up to 2 lines before what ends with 2
-  #    consecutive same letters (case-insentive) like "AA" or "qQ"
+  #    consecutive same letters (case-insensitive) like "AA" or "qQ"
 ```
 
 The suffix `.rb` is used to distinguish this command from the UNIX-shell
@@ -182,11 +182,11 @@ This gives advanced functions, in addition to the standard `tail`, including
 <dd>   It can accept Ruby Regexp to determine the boundary (last-matched line to
     the end), including ignore-case, multi-line, extra &lt;strong&gt;padding-line&lt;/strong&gt; etc.</dd>
 <dt>Character-based</dt>
-<dd>   With &lt;tt&gt;--char&lt;/tt&gt; option, it handles the file in units of a chracter, which is
-    especially handy to deal with multi-byte characters like UTF-8.</dd>
+<dd>   With &lt;tt&gt;--char&lt;/tt&gt; option, it handles the file in units of a character, which
+    is especially handy to deal with multi-byte characters like UTF-8.</dd>
 <dt>Reverse</dt>
-<dd>   It can &lt;strong&gt;reverese&lt;/strong&gt; the behaviour - inverse the counting to ouput
-    everything but the last NUM lines</dd>
+<dd>   It can &lt;strong&gt;reverse&lt;/strong&gt; the behaviour - inverse the counting to output
+    everything but the last NUM lines.</dd>
 </dl>
 
 
@@ -195,14 +195,14 @@ See `head.rb` for practical examples.
 
 Note the UNIX form of
 
-```ruby
-tail -n +5
+```sh
+% tail -n +5
 ```
 
-(which I think is a bit counter-intuieive format) is equivalent to
+(which I think is a bit counter-intuitive format) is equivalent to
 
-```ruby
-head.rb -i -n 5
+```sh
+% head.rb -i -n 5
 ```
 
 The suffix `.rb` is used to distinguish this command from the UNIX-shell
@@ -215,7 +215,9 @@ This stands for "yard to markdown - after-clean".
 
 The standard conversion way of RDoc (written for yard) with `rdoc` library
 
+```ruby
 RDoc::Markup::ToMarkdown.new.convert
+```
 
 is limited, with the produced markdown having a fair number of flaws. This
 command tries to botch-fix it.  The result is still not perfect but does some
@@ -256,7 +258,7 @@ Work in progress...
 ## Install
 
 This script requires [Ruby](http://www.ruby-lang.org) Version 2.0 or above
-(possibley 2.2 or above?).
+(possibly 2.2 or above?).
 
 For use of the library, if your Ruby script declares
 
@@ -280,8 +282,8 @@ environment). You may need to modify the first line (Shebang line) of the
 script to suit your environment (it should be unnecessary for Linux and
 MacOS), or run it explicitly with your Ruby command as
 
-```ruby
-Prompt% /YOUR/ENV/ruby /YOUR/INSTALLED/countchar
+```sh
+% /YOUR/ENV/ruby /YOUR/INSTALLED/countchar
 ```
 
 ## Developer's note
@@ -312,7 +314,7 @@ None.
 <dd>   The versions of this package follow Semantic Versioning (2.0.0)
     http://semver.org/</dd>
 <dt>License</dt>
-<dd>   MI</dd>
+<dd>   MIT</dd>
 </dl>
 
 

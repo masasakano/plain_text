@@ -1,4 +1,8 @@
 -----
+2022-08-25  Masa Sakano
+  * Now auto-judges languages. Fixed a bug of chopping some tails.
+
+-----
 2019-11-07  Masa Sakano
   * Modified .github/README.md
 

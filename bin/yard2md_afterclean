@@ -8,6 +8,7 @@ require 'plain_text'
 BANNER = <<"__EOF__"
 USAGE: #{File.basename($0)} [options] [INFILE.txt] < STDIN
   Clean the partially ill-formated (Github) Markdown converted from yard-Rdoc.
+  Create <dl>, fix "+", add code-block languages etc.
 __EOF__
 
 # Initialising the hash for the command-line options.
@@ -25,7 +26,7 @@ OPTS = {
 #
 def handle_argv
   opt = OptionParser.new(BANNER)
-  opt.on(  '--lang=LANGUAGE', sprintf("Programming Language like ruby (Def: %s).", OPTS[:lang])) { |v| OPTS[:lang]=v.strip }
+  opt.on(  '--lang=LANGUAGE', sprintf("Programming Language like ruby (Def: %s).", OPTS[:lang]), '  NOTE: blocks starting with "% " => sh, "<[a-z]" => HTML in default.') { |v| OPTS[:lang]=v.strip }
   # opt.on(  '--version', "Display the version and exits.", TrueClass) {|v| OPTS[:version] = v}  # Consider opts.on_tail
   opt.on(  '--[no-]debug', "Debug (Def: false)", TrueClass) {|v| OPTS[:debug] = v}
   # opt.separator ""        # Way to control a help message.
@@ -65,7 +66,7 @@ end
 def fix_def_list(str)
   str.gsub(/^(\S+[^\n]*)\n:((?:\s+[^\n]+(?:\n|\z))+)/m){
     sdt, sdd = $1, $2
-    "<dt>%s</dt>\n<dd>%s</dd>\n"%[remove_mdfmt_raw(sdt), remove_mdfmt(sdd.chop)]
+    "<dt>%s</dt>\n<dd>%s</dd>\n"%[remove_mdfmt_raw(sdt), remove_mdfmt(sdd.chomp)]
   }.gsub(/(\s+\n|\A)(<dt>)/m, '\1<dl>'+"\n"+'\2').gsub(%r@(</dd>[[:blank:]]*)(\n(?:\s+|\z))@, '\1'+"\n"+'</dl>\2')
 end
 
@@ -195,6 +196,7 @@ mdpara.merge_para_if{ |pbp, _, _|
   false
 }
 
+## Add a programming language to each code block.
 indent_next = 0
 mdpara = mdpara.map_para{|ec|
   indent_prev = indent_next
@@ -202,7 +204,16 @@ mdpara = mdpara.map_para{|ec|
   next fix_string_based(ec) if !md_code_block?(ec, indent_prev)
   inde = " "*indent_prev
   st = ec.gsub(/^    /, '')
-  "%s```%s\n%s\n%s```"%[inde, opts[:lang], st, inde, opts[:lang]]
+  lang =
+    if (/\A\s*<[a-z]/i =~ st) && /^(javascript|x?html|xml|rss|xsd|wsdl)$/ !~ opts[:lang].downcase.strip
+      'html'
+    elsif (/\A\s*[%\$] /i =~ st) && /^(bash|zsh|shell-script|tex|latex)$/ !~ opts[:lang].downcase.strip
+      # NOTE: "postscr" (PostScript) starts from "%!PS" with no spaces in between.
+      'sh'
+    else
+      opts[:lang]
+    end
+  "%s```%s\n%s\n%s```"%[inde, lang, st, inde]
 }
 
 puts mdpara.join('')

@@ -58,10 +58,46 @@ class TestUnitYard2mdRb < MiniTest::Test
     assert_equal exp, o, "期待:#{exp.inspect} ⇔ \n実際:#{o.inspect}"
     assert_empty e
 
-    stin = "    +abc def+ " + "\n\n\n efg\n"
+    stin = "    abc def " + "\n\n\n efg\n"
     srub = "```ruby\n"
-    exp = srub+"+abc def+ \n```\n\n\n efg\n"
+    exp = srub+"abc def \n```\n\n\n efg\n"
     o, e, s = Open3.capture3 EXE, stdin_data: stin
+    assert_equal 0, s.exitstatus
+    assert_equal exp, o, "期待:#{exp.inspect} ⇔ \n実際:#{o.inspect}"
+    assert_empty e
+
+    # automated judge: sh
+    stin = "    % abc def " + "\n\n\n efg\n"
+    srub = "```sh\n"
+    exp = srub+"% abc def \n```\n\n\n efg\n"
+    o, e, s = Open3.capture3 EXE, stdin_data: stin
+    assert_equal 0, s.exitstatus
+    assert_equal exp, o, "期待:#{exp.inspect} ⇔ \n実際:#{o.inspect}"
+    assert_empty e
+
+    # automated judge unchanged: tex
+    stin = "    % abc def " + "\n\n\n efg\n"
+    srub = "```tex\n"
+    exp = srub+"% abc def \n```\n\n\n efg\n"
+    o, e, s = Open3.capture3 EXE+" --lang=tex", stdin_data: stin
+    assert_equal 0, s.exitstatus
+    assert_equal exp, o, "期待:#{exp.inspect} ⇔ \n実際:#{o.inspect}"
+    assert_empty e
+
+    # automated judge: html
+    stin = "    <abc>def " + "\n\n\n efg\n"
+    srub = "```html\n"
+    exp = srub+"<abc>def \n```\n\n\n efg\n"
+    o, e, s = Open3.capture3 EXE, stdin_data: stin
+    assert_equal 0, s.exitstatus
+    assert_equal exp, o, "期待:#{exp.inspect} ⇔ \n実際:#{o.inspect}"
+    assert_empty e
+
+    # automated judge unchanged: javascript
+    stin = "    <abc>def " + "\n\n\n efg\n"
+    srub = "```javascript\n"
+    exp = srub+"<abc>def \n```\n\n\n efg\n"
+    o, e, s = Open3.capture3 EXE+" --lang=javascript", stdin_data: stin
     assert_equal 0, s.exitstatus
     assert_equal exp, o, "期待:#{exp.inspect} ⇔ \n実際:#{o.inspect}"
     assert_empty e
