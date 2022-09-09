@@ -1,4 +1,9 @@
 -----
+(Version: 0.7.1)
+2022-09-09  Masa Sakano
+  * Skips some tests that break in Ruby 3.
+
+-----
 (Version: 0.7)
 2022-08-25  Masa Sakano
   * fixed many yard-doc warnings.
