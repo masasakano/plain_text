@@ -301,12 +301,22 @@ class TestUnitPlainText < MiniTest::Test
     assert_equal "", PT.tail_inverse("", 3)
 
     # Child class of String
+    # NOTE: In Ruby 3, a subclass of String is not respected in the methods of String:
+    #  @see https://rubyreferences.github.io/rubychanges/3.0.html#string-always-returning-string
+    # NOTE: In Ruby 3, "".class.name is frozen?==true
     chs = ChString.new ""
-    nam = chs.class.name
+    require 'rubygems' if !defined? Gem  # for Ruby 1
+    is_ver_2 = (Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3'))
+    nam = (is_ver_2 ? chs.class : String).name
+
     assert_equal "", chs
     assert_equal chs, PT.tail(chs)
     assert_equal nam, PT.tail(chs).class.name, nam+" <=> \n"+PT.tail(chs).class.name.inspect
-    assert_equal nam, PT.tail(chs.class.name)
+    if is_ver_2
+      assert_equal nam, PT.tail(chs.class.name)
+    else
+      assert_raises(FrozenError){ PT.tail(chs.class.name) }
+    end
     assert_equal nam, PT.tail(chs, -100).class.name
   end
 

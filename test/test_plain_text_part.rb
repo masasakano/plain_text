@@ -18,6 +18,12 @@ gem "minitest"
 require 'minitest/autorun'
 # MiniTest::Unit.autorun
 
+# NOTE: In Ruby 3, a subclass of Array is not respected in the methods of Array:
+#  @see https://rubyreferences.github.io/rubychanges/3.0.html#array-always-returning-array
+# NOTE: In Ruby 3, "".class.name is frozen?==true
+require 'rubygems' if !defined? Gem  # for Ruby 1
+IS_VER_2 = (Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3'))
+
 class TestUnitPlainTextPart < MiniTest::Test
   T = true
   F = false
@@ -143,7 +149,7 @@ class TestUnitPlainTextPart < MiniTest::Test
     assert_equal a1+["d", ""], pt3.to_a
     assert_equal pt1.class,    pt3.class
     assert_equal Pt.new(a3),   pt3    # Boundary("") is appended.
-    assert_equal Pt::Boundary, pt3.to_a[-1].class
+    assert_equal Pt::Boundary, pt3.to_a[-1].class  if IS_VER_2  # Not in Ruby 3 (see note at the top)
     assert_equal pt3, pt1 + ["d", ""]
 
     assert_equal a3.class, ([]+pt3).class  # The latter, too, is an Array (NOT PlainText::Part)
@@ -154,6 +160,9 @@ class TestUnitPlainTextPart < MiniTest::Test
   end
 
   # Tests of [prm], [prm1, prm2], [prm1..prm2] and "equal" operator
+  # NOTE: In Ruby 3, a subclass of Array is not respected in the methods of Array:
+  #  @see https://rubyreferences.github.io/rubychanges/3.0.html#array-always-returning-array
+  # NOTE: In Ruby 3, "".class.name is frozen?==true
   def test_bracket01
     a1  = ["a", "\n\n\n", "b", "\n\n\n", "c", "\n\n"]
     pt1 = Pt.new(a1)
@@ -167,17 +176,18 @@ class TestUnitPlainTextPart < MiniTest::Test
     assert_nil   pt1[-99]
     assert_nil   pt1[98]
 
-    assert_equal pt1.class, pt1[0, 6].class
+    assert_equal pt1.class, pt1[0, 6].class  if IS_VER_2  # Not in Ruby 3 (see note at the top)
     assert_equal a1,        pt1[0, 6].to_a
     assert_equal a1[0, 6],  pt1[0, 6].to_a
-    assert_operator pt1[0, 6], :!=, a1
-    assert_operator a1,        :!=, pt1[0, 6]
+    oper = (IS_VER_2 ? :!= : :==)  # Because PlainText::Part#== is redefined and pt1 is Part in Ruby 2, the following is unequal, whereas pt1 is Array in Ruby 3!
+    assert_operator pt1[0, 6], oper, a1
+    assert_operator a1,        oper, pt1[0, 6]
 
     assert_equal a1[0, 2],  pt1[0, 2].to_a
     assert_equal a1,        pt1[0, 98].to_a
     assert_equal a1[0, 99], pt1[0, 98].to_a
 
-    assert_equal pt1.class, pt1[0..1].class
+    assert_equal pt1.class, pt1[0..1].class  if IS_VER_2  # Not in Ruby 3 (see note at the top)
     assert_equal a1[0..1],  pt1[0..1].to_a
     assert_equal a1[0, 2],  pt1[0..1].to_a
     assert_equal a1[0..5],  pt1[0..5].to_a
@@ -192,12 +202,14 @@ class TestUnitPlainTextPart < MiniTest::Test
 
     assert_equal pt1[0..-1], pt1[0..99]
     assert_equal pt1[0, 6],  pt1[0..-1]
-    assert_equal pt1,        pt1[0..99]
+    assert_equal pt1,        pt1[0..99]  if IS_VER_2  # Not in Ruby 3 (see note at the top)
 
-    pt2 = pt1[0, 4]
-    assert_equal pt1.class,            pt2.class
-    assert_equal pt1.paras[0, 2],      pt2.paras
-    assert_equal pt1.boundaries[0, 2], pt2.boundaries
+    if IS_VER_2  # Not in Ruby 3 (see note at the top)
+      pt2 = pt1[0, 4]
+      assert_equal pt1.class,            pt2.class
+      assert_equal pt1.paras[0, 2],      pt2.paras
+      assert_equal pt1.boundaries[0, 2], pt2.boundaries
+    end
 
     # negative or too-big out-of-bound begin
     assert_nil   a1[-99..2]
@@ -206,7 +218,7 @@ class TestUnitPlainTextPart < MiniTest::Test
     assert_nil   pt1[98..99]
 
     # other out-of-bounds: Empty
-    assert_equal Pt.new([]),  pt1[2..1]
+    assert_equal Pt.new([]),  pt1[2..1]  if IS_VER_2  # Not in Ruby 3 (see note at the top)
     assert_equal a1[-2..2],   pt1[-2..2].to_a
     assert_equal a1[-2...3],  pt1[-2...3].to_a
 
@@ -223,10 +235,12 @@ class TestUnitPlainTextPart < MiniTest::Test
     assert_nil   pt1[pt1.size]
     assert_nil   pt1[pt1.size, -2]
     assert_raises(TypeError){ pt1[pt1.size, ?a] }
-    assert_equal Pt.new([]), pt1[pt1.size, 2]
-    assert_equal Pt.new([]), pt1[pt1.size, 98]
-    assert_equal Pt.new([]), pt1[pt1.size..99]
-    assert_equal Pt.new([]), pt1[pt1.size..1]
+    if IS_VER_2  # Not in Ruby 3 (see note at the top)
+      assert_equal Pt.new([]), pt1[pt1.size, 2]
+      assert_equal Pt.new([]), pt1[pt1.size, 98]
+      assert_equal Pt.new([]), pt1[pt1.size..99]
+      assert_equal Pt.new([]), pt1[pt1.size..1]
+    end
   end
 
   # Tests of slice! to delete
@@ -247,12 +261,12 @@ class TestUnitPlainTextPart < MiniTest::Test
 
     assert_equal a11[4, 2],  a1.slice!(4, 2)
     ptp =                   pt1.slice!(4, 2)
-    assert_equal    pt1.class, ptp.class  # PlainText::Part
+    assert_equal    pt1.class, ptp.class  if IS_VER_2  # Not in Ruby 3 (see note at the top)  # PlainText::Part
     assert_equal    a11[4, 2], ptp.to_a
-    assert_operator a11[4, 2], :!=, ptp   # PlainText::Part != Array
+    assert_operator a11[4, 2], :!=, ptp  if IS_VER_2   # PlainText::Part != Array
     assert_equal a11[0..3],  a1
     assert_equal a11[0..3], pt1.to_a
-    assert_equal pt2[0..3], pt1
+    assert_equal pt2[0..3], pt1  if IS_VER_2  # Not in Ruby 3 (see note at the top)
 
     # Negative size (Index, Size)
     a1  = a11.clone
@@ -268,9 +282,9 @@ class TestUnitPlainTextPart < MiniTest::Test
     pt1 = Pt.new(a11.clone)
     assert_equal a11[4, 6],  a1.slice!(4, 6)
     ptp =                   pt1.slice!(4, 6)
-    assert_equal    pt1.class, ptp.class  # PlainText::Part
+    assert_equal    pt1.class, ptp.class  if IS_VER_2  # Not in Ruby 3 (see note at the top)  # PlainText::Part
     assert_equal    a11[4, 2], ptp.to_a
-    assert_operator a11[4, 2], :!=, ptp   # PlainText::Part != Array
+    assert_operator a11[4, 2], :!=, ptp  if IS_VER_2  # Not in Ruby 3 (see note at the top)   # PlainText::Part != Array
     assert_equal a11[0..3],  a1
 
     # Range exceeding (Range)
@@ -278,10 +292,10 @@ class TestUnitPlainTextPart < MiniTest::Test
     pt1 = Pt.new(a11.clone)
     assert_equal a11[4..9],  a1.slice!(4..9)
     ptp =                   pt1.slice!(4..9)
-    assert_equal    pt1.class, ptp.class  # PlainText::Part
+    assert_equal    pt1.class, ptp.class  if IS_VER_2  # Not in Ruby 3 (see note at the top)  # PlainText::Part
     assert_equal    a11[4..-1],ptp.to_a
     assert_equal    a11[4..9], ptp.to_a
-    assert_operator a11[4..9], :!=, ptp   # PlainText::Part != Array
+    assert_operator a11[4..9], :!=, ptp  if IS_VER_2  # Not in Ruby 3 (see note at the top)   # PlainText::Part != Array
     assert_equal a11[0..3],  a1
     assert_equal a11[0..3], pt1.to_a
 
@@ -301,9 +315,9 @@ class TestUnitPlainTextPart < MiniTest::Test
     pt1 = Pt.new(a11.clone)
     assert_equal a11[-6, 2],  a1.slice!(-6, 2)
     ptp =                    pt1.slice!(-6, 2)
-    assert_equal    pt1.class, ptp.class  # PlainText::Part
+    assert_equal    pt1.class, ptp.class  if IS_VER_2  # Not in Ruby 3 (see note at the top)  # PlainText::Part
     assert_equal    a11[0..1], ptp.to_a
-    assert_operator a11[0..1], :!=, ptp   # PlainText::Part != Array
+    assert_operator a11[0..1], :!=, ptp  if IS_VER_2  # Not in Ruby 3 (see note at the top)   # PlainText::Part != Array
     assert_equal a11[2..-1],  a1
     assert_equal a11[2..-1], pt1.to_a
 
@@ -312,9 +326,9 @@ class TestUnitPlainTextPart < MiniTest::Test
     pt1 = Pt.new(a11.clone)
     assert_equal a11[-6..-5],  a1.slice!(-6..-5)
     ptp =                     pt1.slice!(-6..-5)
-    assert_equal    pt1.class, ptp.class  # PlainText::Part
+    assert_equal    pt1.class, ptp.class  if IS_VER_2  # Not in Ruby 3 (see note at the top)  # PlainText::Part
     assert_equal    a11[0..1], ptp.to_a
-    assert_operator a11[0..1], :!=, ptp   # PlainText::Part != Array
+    assert_operator a11[0..1], :!=, ptp  if IS_VER_2  # Not in Ruby 3 (see note at the top)   # PlainText::Part != Array
     assert_equal a11[2..-1],  a1
     assert_equal a11[2..-1], pt1.to_a
 
