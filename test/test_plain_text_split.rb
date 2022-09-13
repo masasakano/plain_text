@@ -2,11 +2,26 @@
 
 # Author: M. Sakano (Wise Babel Ltd)
 
-require 'plain_text'
-
 $stdout.sync=true
 $stderr.sync=true
+
 # print '$LOAD_PATH=';p $LOAD_PATH
+arlibbase = %w(plain_text)
+
+arlibrelbase = arlibbase.map{|i| "../lib/"+i}
+
+arlibrelbase.each do |elibbase|
+  require_relative elibbase
+end	# arlibbase.each do |elibbase|
+
+print "NOTE: Running: "; p File.basename(__FILE__)
+print "NOTE: Library relative paths: "; p arlibrelbase
+arlibbase4full = arlibbase.map{|i| i.sub(%r@^(../)+@, "")}
+puts  "NOTE: Library full paths for #{arlibbase4full.inspect}: "
+arlibbase4full.each do |elibbase|
+  ar = $LOADED_FEATURES.grep(/(^|\/)#{Regexp.quote(File.basename(elibbase))}(\.rb)?$/).uniq
+  print elibbase+": " if ar.empty?; p ar
+end
 
 #################################################
 # Unit Test

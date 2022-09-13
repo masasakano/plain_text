@@ -1,35 +1,45 @@
 # -*- coding: utf-8 -*-
 
+require_relative "string_type"
+
 module PlainText
-  class Part < Array
+  class Part
+  #class Part < Array
 
     # Class to express a Paragraph as String
     #
-    class Paragraph < String
+    class Paragraph
+      include StringType
 
-      # @return [String]
-      def inspect
-        # 'Paragraph("abc\ndef")' or like 'Paragraph::Title("My Title")'
-        s = self.class.name
-        sprintf "%s(%s)", (s.split('::')[2..-1].join('::') rescue s), super
+      # Constructor
+      #
+      # @param str [String]
+      def initialize(str)
+        @string = str
       end
 
-      # Paragraph sub-class name
-      #
-      # Make sure your class is a child class of Paragraph.
-      # Otherwise this method would not be inherited, obviously.
-      #
       # @return [String]
-      # @see PlainText::Part#subclass_name
-      def subclass_name
-        printf "__method__=(%s)\n", __method__
-        self.class.name.split(/\A#{Regexp.quote method(__method__).owner.name}::/)[1] || ''
+      def to_s
+        @string
+      end
+      alias_method :to_str, :to_s
+
+      # @return [Integer, NilClass]
+      def <=>(other)
+        _equal_cmp(other, __method__){ super }
+      end
+
+      # +String#==+ refers to this.
+      #
+      # @see https://ruby-doc.org/core-3.1.2/String.html#method-i-3D-3D
+      def ==(other)
+        _equal_cmp(other, __method__){ super }
       end
 
       # Empty Paragraph instance
       Empty = self.new ""
       Empty.freeze
-    end # class Paragraph < String
-  end # class Part < Array
+    end # class Paragraph
+  end # class Part
 end # module PlainText
 

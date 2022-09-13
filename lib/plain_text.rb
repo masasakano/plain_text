@@ -185,7 +185,7 @@ module PlainText
       # Also, deepcopy is needed, as this method is destructive.
       prt = (preserve_paragraph ? prt : Part.new([prt.join])).deepcopy
     end
-    prt.squash_boundaryies!  # Boundaries are squashed.
+    prt.squash_boundaries!  # Boundaries are squashed.
 
     # Handles Boundary
     clean_text_boundary!(prt, boundary_style: boundary_style)
@@ -407,7 +407,7 @@ module PlainText
   end # self.clean_text_line_head_tail!
   private_class_method :clean_text_line_head_tail!
 
-  # @param prt [PlainText:Part] (see PlainText.clean_text#prt)
+  # @param prt [PlainText::Part] (see PlainText.clean_text#prt)
   # @param firstlbs_style [Symbol, String] (see PlainText.clean_text#firstlbs_style)
   # @param lastsps_style [Symbol, String]  (see PlainText.clean_text#lastsps_style)
   # @return [void]
@@ -419,11 +419,12 @@ module PlainText
         lastsps_style:  ,
         is_debug: false
       )
-
+#print "DEBUG:233:clht:prt="; p prt
     # Handles the beginning of the given Part.
     obj = prt.first_significant_element || return
     # The first significant element is either Paragraph or Background.
     # obj may be nil.
+#print "DEBUG:234:clht:obj="; p obj
 
     case firstlbs_style
     when String
@@ -450,6 +451,7 @@ module PlainText
     else
       raise ArgumentError, "Invalid firstlbs_style (#{firstlbs_style.inspect}) is specified."
     end
+#print "DEBUG:235:clht:obj="; p obj
 
     # Handles the end of the given Part.
     ind = prt.last_significant_index
@@ -470,8 +472,11 @@ module PlainText
     else
       raise ArgumentError, "Invalid lastsps_style (#{lastsps_style.inspect}) is specified."
     end
+#print "DEBUG:236:clht:obj="; p obj
 
     return nil if !changed
+#print "DEBUG:237:clht:obj="; p obj
+#print "DEBUG:238:clht:prt="; p prt
     ma = /^#{Regexp.quote prt[ind_para]}/.match obj
     if ma
     prt[ind_para].replace ma[0]
@@ -480,6 +485,7 @@ module PlainText
     prt[ind_para].replace obj
     prt[ind_para+1].replace ""
     end
+#print "DEBUG:240:clht:prt="; p prt
   end # self.clean_text_file_head_tail!
   private_class_method :clean_text_file_head_tail!
 
@@ -1050,8 +1056,8 @@ module PlainText
 
 end # module PlainText
 
-require "plain_text/part"
-require "plain_text/parse_rule"
-require "plain_text/split"
-require "plain_text/util"
+require_relative "plain_text/part"
+require_relative "plain_text/parse_rule"
+require_relative "plain_text/split"
+require_relative "plain_text/util"
 

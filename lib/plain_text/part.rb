@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-require "plain_text/util"
+require_relative "util"
 
 module PlainText
 
@@ -72,7 +72,8 @@ module PlainText
   #   * flatten
   #   * SAFE level  for command-line tools?
   #
-  class Part < Array
+  class Part
+  #class Part < Array
 
     include PlainText::Util
 
@@ -91,15 +92,18 @@ module PlainText
     # @return [self]
     def initialize(arin, boundaries=nil, recursive: true, compact: true, compacter: true)
       if !boundaries
-        super(arin)
+        @array = arin.clone
+        #super(arin)
       else
+        raise ArgumentError, "Two main Arrays must have the same size." if arin.size != boundaries.size
 
         armain = []
         arin.each_with_index do |ea_e, i|
           armain << ea_e
           armain << (boundaries[i] || Boundary.new(''))
         end
-        super armain
+        @array = armain
+        #super armain
       end
       normalize!(recursive: recursive, compact: compact, compacter: compacter)
     end
@@ -127,7 +131,7 @@ module PlainText
     # @return [Array<Boundary>]
     # @see #paras
     def boundaries
-      select.with_index { |_, i| i.odd? } rescue select.each_with_index { |_, i| i.odd? } # Rescue for Ruby 2.1 or earlier
+      @array.select.with_index { |_, i| i.odd? } rescue @array.select.each_with_index { |_, i| i.odd? } # Rescue for Ruby 2.1 or earlier
     end
 
     # returns all the Boundaries immediately before the index and at it as an Array
@@ -139,16 +143,18 @@ module PlainText
     def boundary_extended_at(index)
       (i_pos = get_valid_ipos_for_boundary(index)) || return
       arret = []
-      prt = self[i_pos-1]
-      arret = prt.public_send(__method__, -1) if prt.class.method_defined? __method__
-      arret << self[index]
+      prt = @array[i_pos-1]
+      arret = prt.public_send(__method__, -1) if prt.respond_to? __method__
+      arret << @array[index]
     end
 
     # Returns a dup-ped instance with all the Arrays and Strings dup-ped.
     #
     # @return [Part]
     def deepcopy
-      dup.map!{ |i| i.class.method_defined?(:deepcopy) ? i.deepcopy : i.dup }
+      _return_this_or_other{
+        @array.dup.map!{ |i| i.respond_to?(:deepcopy) ? i.deepcopy : i.dup }
+      }
     end
 
     # each method for boundaries only, providing also the index (always an odd number) to the block.
@@ -164,7 +170,7 @@ module PlainText
     # @param (see #map_boundary_with_index)
     # @return as self
     def each_boundary_with_index(**kwd, &bl)
-      map_boundary_core(map: false, with_index: true, **kwd, &bl)
+      map_boundary_core(do_map: false, with_index: true, **kwd, &bl)
     end
 
     # each method for Paras only, providing also the index (always an even number) to the block.
@@ -180,7 +186,7 @@ module PlainText
     # @param (see #map_para_with_index)
     # @return as self
     def each_para_with_index(**kwd, &bl)
-      map_para_core(map: false, with_index: false, **kwd, &bl)
+      map_para_core(do_map: false, with_index: false, **kwd, &bl)
     end
 
     # The first significant (=non-empty) element.
@@ -190,7 +196,7 @@ module PlainText
     # @return [Integer, nil] if self.empty? nil is returned.
     def first_significant_element
       (i = first_significant_index) || return
-      self[i]
+      @array[i]
     end
 
     # Index of the first significant (=non-empty) element.
@@ -199,20 +205,19 @@ module PlainText
     #
     # @return [Integer, nil] if self.empty? nil is returned.
     def first_significant_index
-      return nil if empty?
-      each_index do |i|
-        return i if self[i] && !self[i].empty?  # self for sanity
-      end
-      return size-1
+      return nil if @array.empty?
+      @array.find_index do |val|
+        val && !val.empty?
+      end || (@array.size-1)
     end
 
     # True if the index should be semantically for Paragraph?
     #
     # @param i [Integer] index for the array of self
-    # @option skip_check: [Boolean] if true (Default: false), skip conversion of the negative index to positive.
+    # @option accept_negative: [Boolean] if false (Default: true), skip conversion of the negative index to positive.
     # @see #paras
-    def index_para?(i, skip_check: false)
-      skip_check ? i.even? : positive_array_index_checked(i, self).even?
+    def index_para?(i, accept_negative: true)
+      accept_negative ? positive_array_index_checked(i, @array).even? : i.even?
     end
 
     # The last significant (=non-empty) element.
@@ -222,7 +227,7 @@ module PlainText
     # @return [Integer, nil] if self.empty? nil is returned.
     def last_significant_element
       (i = last_significant_index) || return
-      self[i]
+      @array[i]
     end
 
     # Index of the last significant (=non-empty) element.
@@ -233,7 +238,7 @@ module PlainText
     def last_significant_index
       return nil if empty?
       (0..(size-1)).to_a.reverse.each do |i|
-        return i if self[i] && !self[i].empty?  # self for sanity
+        return i if @array[i] && !@array[i].empty?  # self for sanity
       end
       return 0
     end
@@ -298,12 +303,12 @@ module PlainText
     # @return [self, false] false if no pairs of Paras are merged, else self.
     def merge_para_if()
       arind2del = []  # Indices to delete (both paras and boundaries)
-      each_index do |ei|
-        break if ei >= size - 3  # 2nd last paragraph or later.
-        next if !index_para?(ei, skip_check: true)
-        ar1st = self.to_a[ei..ei+2]
-        ar2nd = ((ei==0) ? nil : self[ei-1])
-        do_merge = yield(ar1st, ar2nd, self[ei+3], ei)
+      @array.each_index do |ei|
+        break if ei >= @array.size - 3  # 2nd last paragraph or later.
+        next if !index_para?(ei, accept_negative: false)
+        ar1st = @array[ei..ei+2]
+        ar2nd = ((ei==0) ? nil : @array[ei-1])
+        do_merge = yield(ar1st, ar2nd, @array[ei+3], ei)
         return false                 if do_merge == :abort
         arind2del.push ei, ei+1, ei+2 if do_merge 
       end
@@ -332,11 +337,11 @@ module PlainText
     # @return [self, nil] nil if nothing is merged (because of wrong indices).
     def merge_para!(*rest, use_para_index: false)
 $myd = true
-#warn "DEBUG:m00: #{rest}\n"
+#print "DEBUG:m00: #{rest}; array=#{@array}\n"
       (ranchk = build_index_range_for_merge_para!(*rest, use_para_index: use_para_index)) || (return self)  # Do nothing.
       # ranchk is guaranteed to have a size of 2 or greater.
-#warn "DEBUG:m0: #{ranchk}\n"
-      self[ranchk] = [self[ranchk].to_a[0..-2].join, self[ranchk.end]]  # 2-elements (Para, Boundary)
+#print "DEBUG:m0: #{ranchk}\n"
+      @array[ranchk] = [Paragraph.new(@array[ranchk][0..-2].join), @array[ranchk.end]]  # Array[Range] replaced with 2-elements (Para, Boundary)
       self
     end
 
@@ -356,7 +361,7 @@ $myd = true
       return nil if inary.empty?
       # inary = inary[0] if like_range?(inary[0])
 #warn "DEBUG:b1: #{inary.inspect}\n"
-      (ary = to_ary_positive_index(inary, to_a)) || return  # Guaranteed to be an array of positive indices (sorted and uniq-ed).
+      (ary = to_ary_positive_index(inary, @array)) || return  # Guaranteed to be an array of positive indices (sorted and uniq-ed).
 #warn "DEBUG:b3: #{ary}\n"
       return nil if ary.empty?
 
@@ -367,7 +372,7 @@ $myd = true
       #   of elements, ending with Boundary.
       if use_para_index
         ary = ary.map{|i| [i*2, i*2+1]}.flatten
-      elsif index_para?(ary[-1], skip_check: true)
+      elsif index_para?(ary[-1], accept_negative: false)
         # The last index in the given Array or Range was for Paragraph (Likely case).
         ary.push(ary[-1]+1)
       end
@@ -377,7 +382,7 @@ $myd = true
 
 $myd = false
       # Exception if the first index is for Boundary and no Paragraph.
-      raise ArgumentError, "The first index (#{ary[0]}) is not for Paragraph." if !index_para?(ary[0], skip_check: true)
+      raise ArgumentError, "The first index (#{ary[0]}) is not for Paragraph." if !index_para?(ary[0], accept_negative: false)
 
       i_end = [ary[-1], size-1].min
       return if i_end - ary[0] < 3  # No more than 1 para selected.
@@ -399,22 +404,24 @@ $myd = false
     # @return [self]
     def normalize!(recursive: true, ignore_array_boundary: true, compact: true, compacter: true)
       # Trim pairs of consecutive Paragraph and Boundary of nil
-      size_parity = (size.even? ? 0 : 1)
-      if (compact || compacter) && (size > 0+size_parity)
-        ((size-2-size_parity)..0).each do |i| 
+      size_parity = (@array.size.even? ? 0 : 1)
+#print "DEBUG:010:norm: ";p @array
+      if (@array.compact || compacter) && (@array.size > 0+size_parity)
+        ((@array.size-2-size_parity)..0).each do |i| 
           # Loop over every Paragraph
           next if i.odd?
-          slice! i, 2 if compact   &&  !self[i] && !self[i+1]
-          slice! i, 2 if compacter && (!self[i] || self[i].empty?) && (!self[i+1] || self[i+1].empty?)
+          @array.slice! i, 2 if @array.compact &&  !@array[i] && !@array[i+1]
+          @array.slice! i, 2 if compacter      && (!@array[i] || @array[i].empty?) && (!@array[i+1] || @array[i+1].empty?)
         end
       end
 
-      i = -1
-      map!{ |ea|
-        i += 1
-        normalize_core(ea, i, recursive: recursive)
+#print "DEBUG:017:norm: ";p @array
+      @array.map!.with_index{ |ea, ind|
+        normalize_core(ea, ind, recursive: recursive)
       }
-      insert_original_b4_part(size, Boundary.new('')) if size.odd?
+#print "DEBUG:018:norm: ";p @array
+      @array.insert(@array.size, Boundary.new('')) if @array.size.odd?
+#print "DEBUG:019:norm: ";p @array
       self
     end
 
@@ -428,14 +435,14 @@ $myd = false
     # @see #normalize!
     def normalize(recursive: true, ignore_array_boundary: true, compact: true, compacter: true)
       # Trims pairs of consecutive Paragraph and Boundary of nil
-      arall = to_a
-      size_parity = (size.even? ? 0 : 1)
-      if (compact || compacter) && (size > 0+size_parity)
-        ((size-2-size_parity)..0).each do |i| 
+      arall = @array
+      size_parity = (@array.size.even? ? 0 : 1)
+      if (@array.compact || compacter) && (@array.size > 0+size_parity)
+        ((@array.size-2-size_parity)..0).each do |i| 
           # Loop over every Paragraph
           next if i.odd?
-          arall.slice! i, 2 if compact   &&  !self[i] && !self[i+1]
-          arall.slice! i, 2 if compacter && (!self[i] || self[i].empty?) && (!self[i+1] || self[i+1].empty?)
+          arall.slice! i, 2 if compact   &&  !@array[i] && !@array[i+1]
+          arall.slice! i, 2 if compacter && (!@array[i] || @array[i].empty?) && (!@array[i+1] || @array[i+1].empty?)
         end
       end
 
@@ -454,7 +461,7 @@ $myd = false
     # @return [Array<Part, Paragraph>]
     # @see #boundaries
     def paras
-      select.with_index { |_, i| i.even? } rescue select.each_with_index { |_, i| i.even? } # Rescue for Ruby 2.1 or earlier
+      @array.select.with_index { |_, i| i.even? } rescue @array.select.each_with_index { |_, i| i.even? } # Rescue for Ruby 2.1 or earlier
       # ret.freeze
     end
 
@@ -465,7 +472,7 @@ $myd = false
     # @option range [Range, nil] Range of indices of self to reparse. In Default, the entire self.
     # @return [self]
     def reparse!(rule: PlainText::ParseRule::RuleConsecutiveLbs, name: nil, range: (0..-1))
-      insert range.begin, self.class.parse((range ? self[range] : self), rule: rule, name: name)
+      insert range.begin, self.class.parse((range ? @array[range] : self), rule: rule, name: name)
       self
     end
 
@@ -474,7 +481,7 @@ $myd = false
     # @param (see #reparse!)
     # @return [PlainText::Part]
     def reparse(**kwd)
-      ret = self.dup
+      ret = @array.dup
       ret.reparse!(**kwd)
       ret
     end
@@ -488,17 +495,17 @@ $myd = false
     # @return [Boundary, nil] nil if a too large index is specified.
     def squash_boundary_at!(index)
       (i_pos = get_valid_ipos_for_boundary(index)) || return
-      prt = self[i_pos-1]
+      prt = @array[i_pos-1]
       m = :emptify_last_boundary!
-      self[i_pos] << prt.public_send(m) if prt.class.method_defined? m
-      self[i_pos]
+      @array[i_pos] << prt.public_send(m) if prt.respond_to? m
+      @array[i_pos]
     end
 
 
     # Wrapper of {#squash_boundary_at!} to loop over the whole {Part}
     #
     # @return [self]
-    def squash_boundaryies!
+    def squash_boundaries!
       each_boundary_with_index do |ec, i|
         squash_boundary_at!(i)
       end
@@ -523,7 +530,7 @@ $myd = false
     # @return [String]
     # @see PlainText::Part#subclass_name
     def subclass_name
-      printf "__method__=(%s)\n", __method__
+printf "DEBUG(part): __method__=(%s)\n", __method__
       self.class.name.split(/\A#{Regexp.quote method(__method__).owner.name}::/)[1] || ''
     end
 
@@ -531,45 +538,64 @@ $myd = false
     # Overwriting instance methods of the parent Object or Array class
     ##########
 
-    # Original equal and plus operators of Array
-    hsmethod = {
-      :equal_original_b4_part => :==,
-      :substitute_original_b4_part => :[]=,
-      :insert_original_b4_part    => :insert,
-      :delete_at_original_b4_part => :delete_at,
-      :slice_original_b4_part     => :slice,
-      :slice_original_b4_part!    => :slice!,
-    }
+    ## Original equal and plus operators of Array
+    #hsmethod = {
+    #  :equal_original_b4_part => :==,
+    #  :substitute_original_b4_part => :[]=,
+    #  :insert_original_b4_part    => :insert,
+    #  :delete_at_original_b4_part => :delete_at,
+    #  :slice_original_b4_part     => :slice,
+    #  :slice_original_b4_part!    => :slice!,
+    #}
 
-    hsmethod.each_pair do |k, ea_orig|
-      if self.method_defined?(k)
-        # To Developer: If you see this message, switch the DEBUG flag on (-d option) and run it.
-        warn sprintf("WARNING: Method %s#%s has been already defined, which should not be.  Contact the code developer. Line %d in %s%s", self.name, k.to_s, __FILE__, __LINE__, ($DEBUG ? "\n"+caller_locations.join("\n").map{|i| "  "+i} : ""))
-      else
-        alias_method k, ea_orig
-      end
-    end
-
-    alias_method :substit, :substitute_original_b4_part
+    #hsmethod.each_pair do |k, ea_orig|
+    #  if self.method_defined?(k)
+    #    # To Developer: If you see this message, switch the DEBUG flag on (-d option) and run it.
+    #    warn sprintf("WARNING: Method %s#%s has been already defined, which should not be.  Contact the code developer. Line %d in %s%s", self.name, k.to_s, __FILE__, __LINE__, ($DEBUG ? "\n"+caller_locations.join("\n").map{|i| "  "+i} : ""))
+    #  else
+    #    alias_method k, ea_orig
+    #  end
+    #end
+    #
+    #alias_method :substit, :substitute_original_b4_part
 
     ########## Most basic methods (Object) ##########
 
     # @return [String]
     def inspect
-      self.class.name + super
+      self.class.name + @array.inspect
     end
 
-    # # clone
-    # #
-    # # Redefines Array#clone so the instance variables are also cloned.
-    # #
-    # # @return [self]
-    # def clone
-    #   copied = super
-    #   val = (@sep.clone        rescue @sep)  # rescue in case of immutable.
-    #   copied.instance_eval{ @sep = val }
-    #   copied 
-    # end
+    # @return [Array]
+    def to_a
+      @array
+    end
+    alias_method :to_ary, :to_a
+
+    # Work around because Object#dup does not dup the instance variable @array
+    #
+    # @return [PlainText::Part]
+    def dup
+      dup_or_clone(super, __method__)
+    end
+
+    # Work around because Object#clone does not clone the instance variable @array
+    #
+    # @return [PlainText::Part]
+    def clone
+      dup_or_clone(super, __method__)
+    end
+ 
+    # core routine for dup/clone
+    #
+    # @param copied [PlainText::Part] super-ed object
+    # @param metho [Symbol] method name
+    # @return [PlainText::Part]
+    def dup_or_clone(copied, metho)
+      val = (@array.send(metho)  rescue @array)  # rescue in case of immutable (though @array should never be so).
+      copied.instance_variable_set('@array', val)
+      copied 
+    end
  
     # Equal operator
     #
@@ -579,11 +605,19 @@ $myd = false
     #
     # @param other [Object]
     def ==(other)
-      return false if !other.class.method_defined?(:to_ary)
+#print "DEBUG:eq00: otehr"; p other
+      #return false if !other.respond_to?(:to_ary)
+      return false if  !other.respond_to?(:to_a) || !other.respond_to?(:normalize!)
+#print "DEBUG:eq01: to"; p ""
       %i(paras boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
-        return false if !other.class.method_defined?(ea_m) || (self.public_send(ea_m) != other.public_send(ea_m))  # public_send() defined in Ruby 2.0 (1.9?) and later
+#print "DEBUG:eq05: method"; p ea_m
+#print "DEBUG:eq06: not_respond=(#{!(other.respond_to?(ea_m)).inspect})\n" if ea_m == :boundaries
+#print "DEBUG:eq07: eq=(#{(self.public_send(ea_m) != other.public_send(ea_m)).inspect})\n" if ea_m == :boundaries
+#print "DEBUG:eq08: ary=#{[self.public_send(ea_m), other.public_send(ea_m)].inspect}\n" if ea_m == :boundaries
+        return false if !other.respond_to?(ea_m) || (self.public_send(ea_m) != other.public_send(ea_m))  # public_send() defined in Ruby 2.0 (1.9?) and later
       end
-      super
+#print "DEBUG:eq09: super\n"
+      @array == other.to_a  # or you may just return true?
     end
  
 
@@ -604,19 +638,21 @@ $myd = false
       # ## The following is strict, but a bit redundant.
       # # is_para = true  # Whether "other" is a Part class instance.
       # # %i(to_ary paras boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
-      # #   is_para &&= other.class.method_defined?(ea_m)
+      # #   is_para &&= other.respond_to?(ea_m)
       # # end
 
       # begin
       #   other_even_odd = 
-      #     ([other.paras, other.boundaries] rescue even_odd_arrays(self, size_even: true, filler: ""))
+      #     ([other.paras, other.boundaries] rescue even_odd_arrays(ary, size_even: true, filler: ""))
       # rescue NoMethodError
       #   raise TypeError, sprintf("no implicit conversion of %s into %s", other.class.name, self.class.name)
       # end
 
       # # eg., if self is PlainText::Part::Section, the returned object is the same.
       # ret = self.class.new(self.paras+other_even_odd[0], self.boundaries+other_even_odd[1])
-      ret = self.class.new super
+      raise(TypeError, "cannot operate with no #{self.class.name} instance (#{other.class.name})") if (!other.respond_to?(:to_a) && !other.respond_to?(:normalize!))
+      #ret = self.class.new super
+      ret = self.class.new(@array+other.to_a)
       ret.normalize!
     end
  
@@ -626,17 +662,47 @@ $myd = false
     # @param other [Object]
     # @return as self
     def -(other)
-      ret = self.class.new super
+      raise ArgumentError, "cannot operate with no {self.class.name} instance" if !other.respond_to?(:to_a) || !other.respond_to?(:normalize!)
+      #ret = self.class.new super
+      ret = self.class.new(@array+other.to_a)
       ret.normalize!
     end
  
-    # Array#<< is now undefined
-    # (because the instances of this class must take always an even number of elements).
-    undef_method(:<<) if method_defined?(:<<)
+    # if the Array method returns an Array, returns this class instance.
+    #
+    # Note that even the value is this-class instance, a new instance is created
+    # in default unless it is +eql?(self)+.
+    #
+    # @param obj [Object] the value to be evaluated.
+    # @return [Object]
+    # @yield [] the returned value is evaluated, if no argument is given
+    # @yieldreturn [Object] Either this-class instance or Object
+    def _return_this_or_other(obj=nil)
+      ret = (block_given? ? yield : obj)
+      (ret.respond_to?(:to_ary) && !ret.eql?(self)) ? self.class.new(ret) : ret
+    end
+    private :_return_this_or_other
  
-    # Array#delete_at is now undefined
-    # (because the instances of this class must have always an even number of elements).
-    undef_method(:delete_at) if method_defined?(:delete_at)
+    # Basically delegates everything to Array
+    #
+    # Array#<< and Array#delete_at are undefined
+    # because the instances of this class must take always an even number of elements.
+    def method_missing(method_name, *args, **kwds)
+      if %i(<< delete_at).include? method_name
+        raise NoMethodError, "no method "+method_name.to_s
+      end
+      _return_this_or_other{
+        @array.public_send(method_name, *args, **kwds)
+      }
+    end
+
+    ## Array#<< is now undefined
+    ## (because the instances of this class must take always an even number of elements).
+    #undef_method(:<<) if method_defined?(:<<)
+ 
+    ## Array#delete_at is now undefined
+    ## (because the instances of this class must have always an even number of elements).
+    #undef_method(:delete_at) if method_defined?(:delete_at)
 
     # Returns a partial Part-Array (or Object, if a single Integer is specified)
     #
@@ -649,7 +715,7 @@ $myd = false
     # @return [Object]
     def [](arg1, *rest)
       arg2 = rest[0]
-      return super(arg1) if !arg2 && !arg1.class.method_defined?(:exclude_end?)
+      return @array[arg1] if !arg2 && !arg1.respond_to?(:exclude_end?)
 
       check_bracket_args_type_error(arg1, arg2)  # Args are now either (Int, Int) or (Range)
 
@@ -657,11 +723,13 @@ $myd = false
         size2ret = size2extract(arg1, arg2, ignore_error: true)  # maybe nil (if the index is too small).
         raise ArgumentError, ERR_MSGS[:even_num]+" "+ERR_MSGS[:use_to_a] if size2ret.odd?
         begin
-          raise ArgumentError, "odd index is not allowed as the starting index for #{self.class.name}.  It must be even. "+ERR_MSGS[:use_to_a] if positive_array_index_checked(arg1, self).odd?
+          raise ArgumentError, "odd index is not allowed as the starting index for #{self.class.name}.  It must be even. "+ERR_MSGS[:use_to_a] if positive_array_index_checked(arg1, @array).odd?
         rescue TypeError, IndexError
           # handled by super
         end
-        return super
+        return _return_this_or_other{
+          @array[arg1, arg2]
+        }
       end
 
       begin
@@ -675,13 +743,17 @@ $myd = false
 
       # The end is smaller than the begin in the positive index.  Empty instance of this class is returned.
       if rang.end < rang.begin
-        return super
+        return _return_this_or_other{
+          @array[arg1, *rest]
+        }
       end
 
       raise RangeError, "odd index is not allowed as the starting Range for #{sefl.class.name}.  It must be even. "+ERR_MSGS[:use_to_a] if rang.begin.odd?
       size2ret = size2extract(rang, skip_renormalize: true)
       raise ArgumentError, ERR_MSGS[:even_num]+" "+ERR_MSGS[:use_to_a] if size2ret.odd?
-      super
+      _return_this_or_other{
+        @array[arg1, *rest]
+      }
     end
  
 
@@ -698,17 +770,23 @@ $myd = false
       end
 
       # Simple substitution to a single element
-      return super(arg1, val) if !arg2 && !arg1.class.method_defined?(:exclude_end?)
+      if !arg2 && !arg1.respond_to?(:exclude_end?)
+        return _return_this_or_other{
+          @array[arg1] = val
+        }
+      end
 
       check_bracket_args_type_error(arg1, arg2)  # Args are now either (Int, Int) or (Range)
 
-      # raise TypeError, "object to replace must be Array type with an even number of elements." if !val.class.method_defined?(:to_ary) || val.size.odd?
+      # raise TypeError, "object to replace must be Array type with an even number of elements." if !val.respond_to?(:to_ary) || val.size.odd?
 
       vals = (val.to_ary rescue [val])
       if arg2
         size2delete = size2extract(arg1, arg2, ignore_error: true)  # maybe nil (if the index is too small).
         raise ArgumentError, "odd-even parity of size of array to replace must be identical to that to slice." if size2delete && ((size2delete % 2) != (vals.size % 2))
-        return super
+        return _return_this_or_other{
+          @array[arg1] = val
+        }
       end
 
       begin
@@ -727,14 +805,13 @@ $myd = false
 
       size2delete = size2extract(rang, skip_renormalize: true)
       raise ArgumentError, "odd-even parity of size of array to replace must be identical to that to slice." if size2delete && ((size2delete % 2) != (vals.size % 2))
-      ret = super
+      @array[arg1] = val
 
       # The result may not be in an even number anymore.  Correct it.
-      Boundary.insert_original_b4_part(size, "") if size.odd?
+      Boundary.insert(@array.size, "") if @array.size.odd?   ############## is it correct???
 
       # Original method may fill some elements of the array with String or even nil.  
       normalize!
-      ret
     end
 
     # Array#insert
@@ -745,23 +822,27 @@ $myd = false
     #
     # @param ind [Index]
     # @param rest [Array] This must have an even number of arguments, unless ind is larger than the array size and an odd number.
-    # @option primitive: [String] if true (Def: false), the original {#insert_original_b4_part} is called.
+    # @option primitive: [String] if true (Def: false), no wrapper action is performed.
     # @return [self]
     def insert(ind, *rest, primitive: false)
-      return insert_original_b4_part(ind, *rest) if primitive
-      ipos = positive_array_index_checked(ind, self)
+      #return insert_original_b4_part(ind, *rest) if primitive
+      return _return_this_or_other(@array.insert(ind, *rest)) if primitive
+
+      ipos = positive_array_index_checked(ind, @array)
       if    rest.size.even? && (ipos > size - 1) && ipos.even?  # ipos.even? is equivalent to index_para?(ipos), i.e., "is the index for Paragraph?"
         raise ArgumentError, sprintf("number of arguments (%d) must be odd for index %s.", rest.size, ind)
       elsif rest.size.odd?  && (ipos <= size - 1)
         raise ArgumentError, sprintf("number of arguments (%d) must be even.", rest.size)
       end
 
-      if ipos >= size
-        rest = Array.new(ipos - size).map{|i| ""} + rest
-        ipos = size
+      if ipos >= @array.size
+        rest = Array.new(ipos - @array.size).map{|i| ""} + rest
+        ipos = @array.size
       end
 
-      super(ipos, rest)
+      _return_this_or_other{
+        @array.insert(ipos, rest)
+      }
     end
 
 
@@ -771,15 +852,16 @@ $myd = false
     #
     # @param arg1 [Integer, Range]
     # @option arg2 [Integer, NilClass]
-    # @option primitive: [Boolean] if true (Def: false), the original {#insert_original_b4_part} is called.
+    # @option primitive: [Boolean] if true (Def: false), no wrapper action is performed.
     # @return as self or NilClass
     def slice!(arg1, *rest, primitive: false)
-      return slice_original_b4_part!(arg1, *rest) if primitive
+      #return slice_original_b4_part!(arg1, *rest) if primitive
+      return _return_this_or_other(@array.slice(ind, *rest)) if primitive
 
       arg2 = rest[0]
 
       # Simple substitution to a single element
-      raise ArgumentError, ERR_MSGS[:even_num] if !arg2 && !arg1.class.method_defined?(:exclude_end?)
+      raise ArgumentError, ERR_MSGS[:even_num] if !arg2 && !arg1.respond_to?(:exclude_end?)
 
       check_bracket_args_type_error(arg1, arg2)  # Args are now either (Int, Int) or (Range)
 
@@ -788,7 +870,7 @@ $myd = false
         # raise ArgumentError, ERR_MSGS[:even_num] if arg2.to_int.odd?
         raise ArgumentError, ERR_MSGS[:even_num] if size2delete && size2delete.odd?
         raise ArgumentError, "odd index is not allowed as the starting Range for #{self.class.name}.  It must be even." if arg1.odd?  # Because the returned value is this class of instance.
-        return super(arg1, *rest)
+        return _return_this_or_other(@array.slice!(arg1, *rest))
       end
 
       begin
@@ -799,12 +881,13 @@ $myd = false
 
       raise RangeError if rang.begin < 0 || rang.end < 0
 
-      return super(arg1, *rest) if (rang.begin > rang.end)  # nil or [] is returned
+      return _return_this_or_other(@array.slice!(arg1, *rest)) if (rang.begin > rang.end)  # nil or [] is returned
+      
 
       size2delete = size2extract(rang, skip_renormalize: true)
       raise ArgumentError, ERR_MSGS[:even_num] if size2delete && size2delete.odd? 
       raise ArgumentError, "odd index is not allowed as the starting Range for #{self.class.name}.  It must be even." if rang.begin.odd?  # Because the returned value is this class of instance.
-      super(arg1, *rest)
+      _return_this_or_other(@array.slice!(arg1, *rest))
     end
  
  
@@ -816,8 +899,8 @@ $myd = false
     #
     # @return [self, NilClass]
     def compact!
-      ret = super
-      ret ? ret.normalize!(recursive: false) : ret
+      ret = @array.send(__method__)
+      ret ? normalize!(recursive: false) : ret
     end
 
     # Array#concat
@@ -827,7 +910,7 @@ $myd = false
     # @param rest [Array<Array>]
     # @return [self]
     def concat(*rest)
-      insert(size, *(rest.sum([])))
+      insert(@array.size, *(rest.sum([])))
     end
 
     # Array#push
@@ -837,7 +920,7 @@ $myd = false
     # @param rest [Array]
     # @return [self]
     def push(*rest)
-      concat(rest)
+      @array.concat(rest)
     end
 
     # {#append} is an alias to {#push}
@@ -863,9 +946,9 @@ $myd = false
     # @raise [TypeError] if not conforms.
     def check_bracket_args_type_error(arg1, arg2=nil)
       if arg2
-        raise TypeError, sprintf("no implicit conversion of #{arg2.class} into Integer") if !arg2.class.method_defined?(:to_int)
+        raise TypeError, sprintf("no implicit conversion of #{arg2.class} into Integer") if !arg2.respond_to?(:to_int)
       else
-        raise TypeError if !arg1.class.method_defined?(:exclude_end?)
+        raise TypeError if !arg1.respond_to?(:exclude_end?)
       end
     end
     private :check_bracket_args_type_error
@@ -875,11 +958,11 @@ $myd = false
     #
     # @return [Boundary] all the descendants' last Boundaries merged.
     def emptify_last_boundary!
-      return Boundary::Empty.dup if size == 0
+      return Boundary::Empty.dup if @array.size == 0
       ret = ""
-      ret << prt.public_send(__method__) if prt.class.method_defined? __method__
-      ret << self[-1]
-      self[-1] = Boundary::Empty.dup
+      ret << prt.public_send(__method__) if prt.respond_to? __method__
+      ret << @array[-1]
+      @array[-1] = Boundary::Empty.dup
       ret
     end
     private :emptify_last_boundary!
@@ -890,8 +973,8 @@ $myd = false
     # @param index [Integer]
     # @return [Integer, nil] nil if a too large index is specified.
     def get_valid_ipos_for_boundary(index)
-      i_pos = positive_array_index_checked(index, self)
-      raise ArgumentError, "Index #{index} specified was for Para, which should be for Boundary." if index_para?(i_pos, skip_check: true)
+      i_pos = positive_array_index_checked(index, @array)
+      raise ArgumentError, "Index #{index} specified was for Para, which should be for Boundary." if index_para?(i_pos, accept_negative: false)
       (i_pos > size - 1) ? nil : i_pos
     end
     private :get_valid_ipos_for_boundary
@@ -899,44 +982,44 @@ $myd = false
 
     # Core routine for {#map_boundary} and similar.
     #
-    # @option map opts: [Boolean] if true (Default), map is performed. Else just each.
+    # @option do_map opts: [Boolean] if true (Default), map is performed. Else just each.
     # @option with_index: [Boolean] if true (Default: false), yield with also index
     # @option recursive: [Boolean] if true (Default), map is performed recursively.
     # @return as self if map: is true, else void
-    def map_boundary_core(map: true, with_index: false, recursive: true, **kwd, &bl)
+    def map_boundary_core(do_map: true, with_index: false, recursive: true, **kwd, &bl)
       ind = -1
-      arnew = map{ |ec|
+      arnew = @array.map{ |ec|
         ind += 1
-        if recursive && index_para?(ind, skip_check: true) && ec.class.method_defined?(__method__)
+        if recursive && index_para?(ind, accept_negative: false) && ec.respond_to?(__method__)
           ec.public_send(__method__, recursive: true, **kwd, &bl)
-        elsif !index_para?(ind, skip_check: true)
+        elsif !index_para?(ind, accept_negative: false)
           with_index ? yield(ec, ind) : yield(ec)
         else
           ec
         end
       }
-      self.class.new arnew, recursive: recursive, **kwd if map
+      self.class.new arnew, recursive: recursive, **kwd if do_map
     end
     private :map_boundary_core
 
     # Core routine for {#map_para}
     #
-    # @option map: [Boolean] if true (Default), map is performed. Else just each.
+    # @option do_map: [Boolean] if true (Default), map is performed. Else just each.
     # @option with_index: [Boolean] if true (Default: false), yield with also index
     # @option recursive: [Boolean] if true (Default), map is performed recursively.
     # @return as self
     # @see #initialize for the other options (:compact and :compacter)
-    def map_para_core(map: true, with_index: false, recursive: true, **kwd, &bl)
+    def map_para_core(do_map: true, with_index: false, recursive: true, **kwd, &bl)
       ind = -1
       new_paras = paras.map{ |ec|
         ind += 1
-        if recursive && ec.class.method_defined?(__method__)
+        if recursive && ec.respond_to?(__method__)
           ec.public_send(__method__, recursive: true, **kwd, &bl)
         else
           with_index ? yield(ec, ind) : yield(ec)
         end
       }
-      self.class.new new_paras, boundaries, recursive: recursive, **kwd if map
+      self.class.new new_paras, boundaries, recursive: recursive, **kwd if do_map
     end
     private :map_para_core
 
@@ -948,18 +1031,18 @@ $myd = false
     # @option ignore_array_boundary: [Boolean] if true (Default), even if a Boundary element (odd-numbered index) is an Array, ignore it.
     # @return [Part, Paragraph, Boundary]
     def normalize_core(ea, i, recursive: true, ignore_array_boundary: true)
-      if    ea.class.method_defined?(:to_ary)
-        if index_para?(i, skip_check: true) || ignore_array_boundary
+      if    ea.respond_to?(:to_ary)
+        if index_para?(i, accept_negative: false) || ignore_array_boundary
           (/\APlainText::/ =~ ea.class.name && defined?(ea.normalize)) ? (recursive ? ea.normalize : ea) : self.class.new(ea, recursive: recursive)
         else
           raise "Index ({#i}) is an Array or its child, but it should be Boundary or String."
         end
-      elsif ea.class.method_defined?(:to_str)
+      elsif ea.respond_to?(:to_str)
         if /\APlainText::/ =~ ea.class.name
           # Paragraph or Boundary
           ea.unicode_normalize
         else
-          if index_para?(i, skip_check: true)
+          if index_para?(i, accept_negative: false)
             Paragraph.new(ea.unicode_normalize || "")
           else
             Boundary.new( ea.unicode_normalize || "")
@@ -979,7 +1062,7 @@ $myd = false
     # @raise [IndexError] if too negative index is specified.
     def normalize_index_range(rng, **kwd)
       # NOTE to developers: (0..-1).to_a returns [] (!)
-      arpair = [rng.begin, rng.end].to_a.map{ |i| positive_array_index_checked(i, self, **kwd) }
+      arpair = [rng.begin, rng.end].to_a.map{ |i| positive_array_index_checked(i, @array, **kwd) }
       arpair[1] -= 1 if rng.exclude_end?
       (arpair[0]..arpair[1])
     end
@@ -1002,11 +1085,11 @@ $myd = false
     # @return [Integer, NilClass] nil if an Error is raised with ignore_error being true
     def size2extract(arg1, arg2=nil, ignore_error: false, skip_renormalize: false, **kwd)
       begin
-        if arg1.class.method_defined? :exclude_end?
+        if arg1.respond_to? :exclude_end?
           rng = arg1
           rng = normalize_index_range(rng, **kwd) if !skip_renormalize
         else
-          ipos = positive_array_index_checked(arg1, self)
+          ipos = positive_array_index_checked(arg1, @array)
           rng = (ipos..(ipos+arg2.to_int-1))
         end
         return 0 if rng.begin > size-1
@@ -1028,44 +1111,47 @@ end # module PlainText
 # Modifies Array
 ####################################################
 
-class Array
-
-  # Original equal and plus operators of Array
-  hsmethod = {
-    :equal_original_b4_part? => :== ,
-    # :plus_operator_original_b4_part => :+
-  }
-
-  hsmethod.each_pair do |k, ea_orig|
-    if self.method_defined?(k)
-      # To Developer: If you see this message, switch the DEBUG flag on (-d option) and run it.
-      warn sprintf("WARNING: Method %s#%s has been already defined, which should not be.  Contact the code developer. Line %d in %s%s", self.name, k.to_s, __FILE__, __LINE__, ($DEBUG ? "\n"+caller_locations.join("\n").map{|i| "  "+i} : ""))
-    else
-      alias_method k, ea_orig
-    end
-  end
-
-  # Equal operator modified to deal with {PlainText::Part}
-  #
-  # @param other [Object]
-  def ==(other)
-    return false if !other.class.method_defined?(:to_ary)
-    %i(paras boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
-      return equal_original_b4_part?(other) if !other.class.method_defined?(ea_m)
-      return false if !self.class.method_defined?(ea_m) || (self.public_send(ea_m) != other.public_send(ea_m))  # public_send() defined in Ruby 2.0 (1.9?) and later
-    end
-    true
-  end
-
-end
+#class Array
+#
+#  # Original equal and plus operators of Array
+#  hsmethod = {
+#    :equal_original_b4_part? => :== ,
+#    # :plus_operator_original_b4_part => :+
+#  }
+#
+#  hsmethod.each_pair do |k, ea_orig|
+#    if self.method_defined?(k)
+#      # To Developer: If you see this message, switch the DEBUG flag on (-d option) and run it.
+#      warn sprintf("WARNING: Method %s#%s has been already defined, which should not be.  Contact the code developer. Line %d in %s%s", self.name, k.to_s, __FILE__, __LINE__, ($DEBUG ? "\n"+caller_locations.join("\n").map{|i| "  "+i} : ""))
+#    else
+#      alias_method k, ea_orig
+#    end
+#  end
+#
+#  # Equal operator modified to deal with {PlainText::Part}
+#  #
+#  # @param other [Object]
+#  def ==(other)
+#    return (self==other.to_a) if other.respond_to?(:to_a) && other.respond_to?(:normalize!)
+#    equal_original_b4_part?(other)
+#
+#    #return false if !other.respond_to?(:to_ary)
+#    #%i(paras boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
+#    #  return equal_original_b4_part?(other) if !other.respond_to?(ea_m)
+#    #  return false if !self.respond_to?(ea_m) || (self.public_send(ea_m) != other.public_send(ea_m))  # public_send() defined in Ruby 2.0 (1.9?) and later
+#    #end
+#    #true
+#  end
+#
+#end
 
 ####################################################
 # require (after the module is defined)
 ####################################################
 
-require 'plain_text/part/paragraph'
-require 'plain_text/part/boundary'
-require "plain_text/parse_rule"
+require_relative 'part/paragraph'
+require_relative 'part/boundary'
+require_relative "parse_rule"
 
 #######
 # idea

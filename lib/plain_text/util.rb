@@ -47,8 +47,8 @@ module PlainText
     # @param size_even [Boolean] if true (Def: false), the sizes of the returned arrays are guaranteed to be identical.
     # @param filler [Object] if size_even: is true and if matching is performed, this filler is added at the end of the last element.
     def even_odd_arrays(ary, size_even: false, filler: "")
-      ar_even = select.with_index { |_, i| i.even? } rescue select.each_with_index { |_, i| i.even? } # Rescue for Ruby 2.1 or earlier
-      ar_odd  = select.with_index { |_, i| i.odd? }  rescue select.each_with_index { |_, i| i.odd? }  # Rescue for Ruby 2.1 or earlier
+      ar_even = ary.select.with_index { |_, i| i.even? } rescue ary.select.each_with_index { |_, i| i.even? } # Rescue for Ruby 2.1 or earlier
+      ar_odd  = ary.select.with_index { |_, i| i.odd? }  rescue ary.select.each_with_index { |_, i| i.odd? }  # Rescue for Ruby 2.1 or earlier
       if size_even && (ar_even.size != ar_odd.size)
         ar_odd.push filler
         raise "Should not happern." if (ar_even.size != ar_odd.size)
@@ -62,13 +62,13 @@ module PlainText
     # If the negative index is out of range, it returns nil.
     #
     # @param i [Integer]
-    # @param ary [Array, Integer, nil] Reference Array or its size (Array#size) or nil (interpreted as self#size (untested)).
+    # @param arysize [Array, Integer] Reference Array or its size (Array#size).
     # @return [Integer, NilClass] nil if out of range to the negative.  Note in most cases in Ruby default, it raises IndexError.  See the code of {#positive_array_index_checked}
     # @raise [TypeError] if non-integer is specified.
-    # @raise [ArgumentError] if ary is neither an Array nor Integer, or more specifically, it does not have size method or ary.size does not return Integer or similar.
-    def positive_array_index(i, ary=nil)
-      arysize = (ary ? (ary.respond_to?(:to_int) ? ary.to_int : ary.size) : size)
-      i2 = i.to_int rescue (raise TypeError, sprintf("no implicit conversion of #{i.class} into Integer (i=#{i.inspect},ary=#{ary.inspect})"))
+    # @raise [ArgumentError] if arysize is neither an Array nor Integer, or more specifically, it does not have size method or arysize.size does not return Integer or similar.
+    def positive_array_index(i, arysize=nil)
+      arysize = (arysize.respond_to?(:to_int) ? arysize.to_int : arysize.size)
+      i2 = i.to_int rescue (raise TypeError, sprintf("no implicit conversion of #{i.class} into Integer (i=#{i.inspect},arysize=#{arysize.inspect})"))
       return i2 if i2 >= 0
       ret = arysize + i2 rescue (raise ArgumentError, "Reference is neither an Array nor Integer.")
       (ret < 0) ? nil : ret
@@ -82,20 +82,20 @@ module PlainText
     # Wrapper for {#positive_array_index}
     #
     # @param index_in [Integer] Index to check and convert from. Potentially negative integer.
-    # @param ary [Array, Integer, nil] Reference Array or its size (Array#size) or nil (interpreted as self#size (untested)).
+    # @param arysize [Array, Integer] Reference Array or its size (Array#size).
     # @param accept_too_big [Boolean, NilClass] if true (Default), a positive index larger than the last array index is returned as it is. If nil, the last index + 1 is accepted but raises an Exception for anything larger.  If false, any index larger than the last index raises an Exception.
     # @param varname [NilClass, String] Name of the variable (or nil) to be used for error messages.
     # @return [Integer] Non-negative index; i.e., if index=-1 is specified for an Array with a size of 3, the returned value is 2 (the last index of it).
     # @raise [IndexError] if the index is out of the range to negative.
-    # @raise [ArgumentError] if ary is neither an Array nor Integer, or more specifically, it does not have size method or ary.size does not return Integer or similar.
-    def positive_array_index_checked(index_in, ary=nil, accept_too_big: true, varname: nil)
-      # def self.positive_valid_index_for_array(index_in, ary, varname: nil)
+    # @raise [ArgumentError] if arysize is neither an Array nor Integer, or more specifically, it does not have size method or arysize.size does not return Integer or similar.
+    def positive_array_index_checked(index_in, arysize, accept_too_big: true, varname: nil)
+      # def self.positive_valid_index_for_array(index_in, arysize, varname: nil)
       errmsgs = {}
       %w(of for).each do |i|
         errmsgs[i] = (varname ? "." : sprintf(" %s %s.", i, varname)) 
       end
   
-      arysize = (ary ? (ary.respond_to?(:to_int) ? ary.to_int : ary.size) : size)
+      arysize = (arysize.respond_to?(:to_int) ? arysize.to_int : arysize.size)
       index = positive_array_index(index_in, arysize)  # guaranteed to be Integer or nil (or ArgumentError)
       raise IndexError, sprintf("index (%s) too small for array; minimum: -%d", index_in, arysize) if !index  # Ruby default Error message (except the variable "index" as opposed to "index_in is used in the true Ruby default).
       if index_in >= 0
