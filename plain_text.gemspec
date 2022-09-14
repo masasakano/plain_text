@@ -5,7 +5,7 @@ require 'date'
 
 Gem::Specification.new do |s|
   s.name = %q{plain_text}.sub(/.*/){|c| (c == File.basename(Dir.pwd)) ? c : raise("ERROR: s.name=(#{c}) in gemspec seems wrong!")}
-  s.version = "0.7.1".sub(/.*/){|c| fs = Dir.glob('changelog{,.*}', File::FNM_CASEFOLD); raise('More than one ChangeLog exist!') if fs.size > 1; warn("WARNING: Version(s.version=#{c}) already exists in #{fs[0]} - ok?") if fs.size == 1 && !IO.readlines(fs[0]).grep(/^\(Version: #{Regexp.quote c}\)$/).empty? ; c }  # n.b., In macOS, changelog and ChangeLog are identical in default.
+  s.version = "0.8".sub(/.*/){|c| fs = Dir.glob('changelog{,.*}', File::FNM_CASEFOLD); raise('More than one ChangeLog exist!') if fs.size > 1; warn("WARNING: Version(s.version=#{c}) already exists in #{fs[0]} - ok?") if fs.size == 1 && !IO.readlines(fs[0]).grep(/^\(Version: #{Regexp.quote c}\)$/).empty? ; c }  # n.b., In macOS, changelog and ChangeLog are identical in default.
   # s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.bindir = 'bin'
   %w(countchar textclean head.rb tail.rb yard2md_afterclean).each do |f|
@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
     File.executable?(path) ? s.executables << f : raise("ERROR: Executable (#{path}) is not executable!")
   end
   s.authors = ["Masa Sakano"]
-  s.date = %q{2022-09-09}.sub(/.*/){|c| (Date.parse(c) == Date.today) ? c : raise("ERROR: s.date=(#{c}) is not today!")}
+  s.date = %q{2022-09-14}.sub(/.*/){|c| (Date.parse(c) == Date.today) ? c : raise("ERROR: s.date=(#{c}) is not today!")}
   s.summary = %q{Module to handle Plain-Text}
   s.description = %q{This module provides utility functions and methods to handle plain text, classes Part/Paragraph/Boundary to represent the logical structure of a document and ParseRule to describe the rules to parse plain text to produce a Part-type Ruby instance. A few handy Ruby executable scripts to make use of them are included.}
   # s.email = %q{abc@example.com}
@@ -41,7 +41,7 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--charset=UTF-8"]
 
   # s.require_paths = ["lib"]	# Default "lib"
-  s.required_ruby_version = '>= 2.0', '< 3.2'
+  s.required_ruby_version = '>= 2.0'
   s.test_files = Dir['test/**/*.rb']
   s.test_files.reject! { |fn| File.symlink? fn }
   # s.requirements << 'libmagick, v6.0' # Simply, info to users.

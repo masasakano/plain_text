@@ -1,4 +1,15 @@
 -----
+(Version: 0.8)
+2022-09-14  Masa Sakano
+  * Major upgrade where parent classes changed from Array/String to Object.
+  
+    * Changed the parent classes for Part/Paragraph/Boundary from Array/String to Object.
+    * `PlainText::BuiltinType` introduced to contain common methods.
+    * `PlainText::Part::StringType` introduced for Paragraph/Boundary, to which many methods in the classes were transferred.
+    * Custom Exception is added: `lib/plain_text/error.rb`
+    * Some changes in detailed (minor) specifications.
+
+-----
 (Version: 0.7.1)
 2022-09-09  Masa Sakano
   * Skips some tests that break in Ruby 3.
