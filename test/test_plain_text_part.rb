@@ -16,10 +16,11 @@ end	# arlibbase.each do |elibbase|
 
 print "NOTE: Running: "; p File.basename(__FILE__)
 print "NOTE: Library relative paths: "; p arlibrelbase
-arlibbase4full = arlibbase.map{|i| i.sub(%r@^(../)+@, "")}+%w(part part/boundary)
+arlibbase4full = arlibbase.map{|i| i.sub(%r@^(../)+@, "")}+%w(part part/paragraph part/boundary plain_text/util builtin_type part/string_type)
 puts  "NOTE: Library full paths for #{arlibbase4full.inspect}: "
 arlibbase4full.each do |elibbase|
-  ar = $LOADED_FEATURES.grep(/(^|\/)#{Regexp.quote(File.basename(elibbase))}(\.rb)?$/).uniq
+  #ar = $LOADED_FEATURES.grep(/(^|\/)#{Regexp.quote(File.basename(elibbase))}(\.rb)?$/).uniq
+  ar = $LOADED_FEATURES.grep(/(^|\/)#{Regexp.quote(elibbase)}(\.rb)?$/).uniq
   print elibbase+": " if ar.empty?; p ar
 end
 
@@ -38,6 +39,9 @@ require 'minitest/autorun'
 # NOTE: In Ruby 3, "".class.name is frozen?==true
 require 'rubygems' if !defined? Gem  # for Ruby 1
 IS_VER_2 = (Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3'))
+
+class PlainText::Part::Boundary::MyA < PlainText::Part::Boundary
+end
 
 class TestUnitPlainTextPart < MiniTest::Test
   T = true
@@ -103,6 +107,13 @@ class TestUnitPlainTextPart < MiniTest::Test
     assert_equal pt21, pt22
   end
 
+  def test_new03
+    assert_raises(ArgumentError){ Pt.new(?a) }
+    assert_raises(ArgumentError){ Pt.new(3) }
+    assert_raises(TypeError){ Pt.new([Pt::Boundary.new(""),  Pt::Boundary.new("\n") ]) }
+    assert_raises(TypeError){ Pt.new([Pt::Paragraph.new(""), Pt::Paragraph.new("a")]) }
+  end
+
   def test_size2extract01
     a1  = ["a", "\n\n\n", "b", "\n\n\n", "c", "\n\n"]
     pt1 = Pt.new(a1)
@@ -128,7 +139,7 @@ class TestUnitPlainTextPart < MiniTest::Test
     assert_raises(IndexError){ pt1.send(:size2extract, (-9..-9), ignore_error: false, skip_renormalize: false) }
   end
 
-   
+
   def test_equal01
     a1  = ["a", "\n\n\n", "b", "\n\n\n", "c", "\n\n"]
     pt1 = Pt.new(a1)
@@ -136,15 +147,29 @@ class TestUnitPlainTextPart < MiniTest::Test
     pt2 = Pt.new(a2)
 
     assert_operator pt1, '==', Pt.new(a1)
+    assert_operator pt1, '==', Pt.new(a1.dup)
+    assert_operator pt1, '==', Pt.new(pt1.deepcopy.to_a)
     assert_operator a1,  '==', pt1.to_a
     assert_operator a1,  '!=', pt1
     assert_operator pt1, '!=', a1
-    assert_operator a1,  '!=', ?a
-    assert_operator ?a,  '!=', a1
     assert_operator pt1, '!=', pt2
     assert_operator pt2, '!=', pt1
     assert_operator pt1, '!=', ?a
     assert_operator ?a,  '!=', pt1
+  end
+
+  def test_equal02_para_boundary
+    pa1 = Pt::Paragraph.new("abc")
+    bo1 = Pt::Boundary.new("\n\n")
+    assert_equal pa1, "abc"
+    assert_equal "abc", pa1
+    assert_equal pa1, Pt::Paragraph.new("abc")
+    assert_equal bo1, "\n\n"
+    assert_equal "\n\n", bo1
+    assert_equal bo1, Pt::Boundary.new("\n\n")
+
+    assert_respond_to pa1, :+
+    assert_respond_to bo1, :gsub!
   end
 
   def test_nomethoderror01
@@ -367,14 +392,12 @@ class TestUnitPlainTextPart < MiniTest::Test
 
     pt2 = pt1.dup
     assert_equal 10, pt2.size, "Sanity check should pass: #{pt2.inspect}"
-#print "DEBUG-test-me1: ";p pt1
     pt2.merge_para!(2,3,4)
     assert_equal s1, pt2.join
     assert_equal  8, pt2.size
     assert_equal "b\n\nc\n\n", pt2[2..3].join
 
     pt2 = pt1.dup
-#print "DEBUG-test-me2: ";p pt1
     assert_equal 10, pt2.size, "Sanity check should pass: #{pt2.inspect}"
     pt2.merge_para!(2,3,4, 5)
     assert_equal s1, pt2.join
@@ -428,7 +451,7 @@ class TestUnitPlainTextPart < MiniTest::Test
     s1 = "a\n\nb\n\nc\n\nd\n\ne\n\n"
     #     0 1  2 3  4 5  6 7  8 9
     pt1 = Pt.parse s1
-    
+
     pt2 = pt1.dup
     assert pt2.merge_para_if{|ary,bi,bf|
       ary[0] == ?b && ary[2] == ?c
@@ -459,9 +482,119 @@ class TestUnitPlainTextPart < MiniTest::Test
     assert_equal s1,  pt1.join
   end
 
+  def test_subclass_name
+    assert_equal "Boundary::MyA", Pt::Boundary::MyA.new("\n===\n").subclass_name
+  end
+
+  def test_dup
+    pa1 = Pt::Paragraph.new("b")
+    bo1 = Pt::Boundary::MyA.new("\n===\n")
+    para1 = [Pt::Paragraph.new("a"), pa1, Pt::Paragraph.new("c")]
+    boun1 = [Pt::Boundary.new("\n"), bo1, Pt::Boundary.new("\n")]
+    pt1 = Pt.new(para1, boun1)
+    assert_equal pt1[2],           pa1
+    refute_equal pt1[2].object_id, pa1.object_id, "New one should be given a different object_id (unicode_normalized)"
+
+    pt2 = pt1.dup
+    refute_equal pt1.object_id,          pt2.object_id
+    refute_equal pt1.instance.object_id, pt2.instance.object_id
+    assert_equal pt1[2].object_id,       pt2[2].object_id
+    assert_equal pt1.paras[1].object_id, pt2[2].object_id
+    assert_equal pt1.paras[1].object_id, pt2.paras[1].object_id
+    assert_equal pt1.boundaries[1].object_id, pt2.boundaries[1].object_id
+
+    pa2 = pa1.dup
+    assert_equal pa1,   pa2
+    refute_equal pa1.object_id,          pa2.object_id
+    refute_equal pa1.instance.object_id, pa2.instance.object_id
+    pa2.replace("x")
+    refute_equal pa1,   pa2
+
+    bo2 = bo1.dup
+    assert_equal bo1,   bo2
+    refute_equal bo1.object_id,          bo2.object_id
+    refute_equal bo1.instance.object_id, bo2.instance.object_id
+    bo2.replace("x")
+    refute_equal bo1,   bo2
+  end
+
+  def test_deepcopy
+    para1 = [Pt::Paragraph.new("a"), Pt::Paragraph.new("b"), Pt::Paragraph.new("c")]
+    boun1 = [Pt::Boundary.new("\n"), Pt::Boundary::MyA.new("\n===\n"), Pt::Boundary.new("\n")]
+    pt1 = Pt.new(para1, boun1)
+    pt2 = pt1.deepcopy
+    assert_equal pt1, pt2
+    assert_equal Pt::Paragraph,     pt1.to_a[0].class
+    assert_equal Pt::Boundary,      pt1.to_a[1].class
+    assert_equal Pt::Paragraph,     pt1.to_a[2].class
+    assert_equal Pt::Boundary::MyA, pt1.to_a[3].class
+    assert_equal "Boundary::MyA", pt1.to_a[3].subclass_name, "subclass_name should be equal: pt1: #{pt1.to_a[3].inspect}"
+    assert_equal "Boundary::MyA", pt2.to_a[3].subclass_name
+    refute_equal pt1.object_id,         pt2.object_id
+    refute_equal pt1.to_a[3].object_id, pt2.to_a[3].object_id
+    refute_equal pt1.to_a[3].to_s.object_id, pt2.to_a[3].to_s.object_id
+    refute_equal pt1.to_a[4].object_id, pt2.to_a[4].object_id
+    refute_equal pt1.to_a[4].to_s.object_id, pt2.to_a[4].to_s.object_id
+  end
+
+  def test_insert
+    a1  = ["a", "\n\n\n", "b", "\n\n\n", "c"]
+    pt1 = Pt.new(a1)
+    assert_equal 6, pt1.size,       "Sanity check 1"
+    assert_equal a1+[""], pt1.to_a, "Sanity check 2"
+    pt2 = pt1.deepcopy
+    err = assert_raises(IndexError){ pt2.insert(-99, ?d, "\n") }
+    assert_raises(IndexError){ pt2.insert(-99) }
+    assert_match(/\btoo small for array\b/i, err.message)
+    assert_raises(IndexError){ pt2.insert(7, ?d, "\n") }
+    assert_raises(ArgumentError){ pt2.insert(-1, ?d) }
+    assert_raises(ArgumentError){ pt2.concat([?d]) }
+    assert_raises(ArgumentError){ pt2.push(   ?d) }
+    assert_raises(ArgumentError){ pt2.insert(-1, ?d, "", ?e) }
+    assert_raises(TypeError){ pt2.insert(-1, Pt::Boundary.new("\n"), Pt::Paragraph.new(?d)) }
+    assert_raises(TypeError){ pt2.insert(-1, Pt::Paragraph.new(?d),  Pt::Paragraph.new(?d)) }
+    assert_raises(TypeError){ pt2.insert(-2, Pt::Paragraph.new(?d),  Pt::Boundary.new("\n")) }
+    assert_raises(TypeError){ pt2.insert(-2, Pt::Boundary.new("\n"), Pt::Boundary.new("\n")) }
+    assert_raises(TypeError){ pt2.insert(-2, Pt.new([?d]), Pt::Boundary.new("\n")) }
+    pt2 = pt1.deepcopy  # required, as @array is altered.
+    assert_equal pt1, pt2
+    assert_equal pt1, pt2.insert(-1), "Insert with no second arguments should alter nothing."
+    assert_equal pt1, pt2.insert(0)
+    assert_equal pt1, pt2.insert(1)
+
+    pt2.insert(-1, ?e, "\n")
+    assert_equal 8, pt2.size
+    assert_equal [?e, "\n"], pt2.to_a[-2..-1]
+    assert pt2[-2].paragraph?
+    assert pt2[-1].boundary?
+
+    bo5 = Pt::Boundary.new("==")
+    pt2.insert(5, bo5, ?d)
+    assert_equal 10, pt2.size
+    assert_equal ["==", ?d, "", ?e, "\n"], pt2.to_a[-5..-1]
+    assert pt2[-2].paragraph?
+    assert pt2[-1].boundary?
+    assert_equal bo5, pt2[5]
+    assert pt2[5].boundary?
+    assert_equal "d", pt2[6]
+    assert pt2[6].paragraph?
+
+    pt2.insert(2, pt1, "")
+    assert_equal 12, pt2.size
+    assert_equal "a\n\n\na\n\n\nb\n\n\ncb\n\n\nc==de\n", pt2.join
+end
+
+  def test_array_methods
+    a1  = ["a", "\n\n\n", "b", "\n\n\n", "c"]
+    pt1 = Pt.new(a1)
+    assert_equal 6, pt1.size
+    assert_equal a1+[""], pt1.to_a
+    assert_raises(NoMethodError){ pt1.delete_at(0) }
+    assert_raises(NoMethodError){ pt1 << ?d }
+  end
+
     #assert ( /_rails_db\.sql$/ =~ s1.outfile )
     #assert_nil            fkeys
-    #assert_match(/^\s*ADD CONSTRAINT/ , s1.instance_eval{ @strall })
 end	# class TestUnitPlainTextPart < MiniTest::Test
 
 #end	# if $0 == __FILE__

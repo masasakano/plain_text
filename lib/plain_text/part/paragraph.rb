@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
+require_relative "../builtin_type"
 require_relative "string_type"
 
 module PlainText
   class Part
-  #class Part < Array
 
     # Class to express a Paragraph as String
     #
     class Paragraph
+      include PlainText::BuiltinType
       include StringType
 
       # Constructor
@@ -18,11 +19,11 @@ module PlainText
         @string = str
       end
 
-      # @return [String]
-      def to_s
-        @string
-      end
-      alias_method :to_str, :to_s
+      ## @return [String]
+      #def to_s
+      #  @string
+      #end
+      #alias_method :to_str, :to_s
 
       # @return [Integer, NilClass]
       def <=>(other)
@@ -34,6 +35,18 @@ module PlainText
       # @see https://ruby-doc.org/core-3.1.2/String.html#method-i-3D-3D
       def ==(other)
         _equal_cmp(other, __method__){ super }
+      end
+
+      def boundary?
+        false
+      end
+
+      def paragraph?
+        true
+      end
+
+      def part?
+        false
       end
 
       # Empty Paragraph instance

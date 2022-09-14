@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+require_relative "error"
+require_relative "builtin_type"
 require_relative "util"
 
 module PlainText
@@ -75,7 +77,11 @@ module PlainText
   class Part
   #class Part < Array
 
+    include PlainText::BuiltinType
     include PlainText::Util
+
+    # Array methods that are disabled for this class.
+    DISABLED_ARRAY_METHODS = %i(<< delete_at)
 
     # Error messages
     ERR_MSGS = {
@@ -84,13 +90,24 @@ module PlainText
     }
     private_constant :ERR_MSGS
 
-    # @param arin [Array] of [Paragraph1, Boundary1, Para2, Bd2, ...] or just Paragraphs if boundaries is given as the second arguments
+    # Constructor
+    #
+    # New String-type objects are always created, i.e.,
+    # regardless of whether the input is a pure String or {Paragraph} etc,
+    # a new {Paragraph} is always created from {Paragraph#to_s}. Therefore,
+    # even if one of the String given to the argument is destructively
+    # modified, it does not affect the generated {Part} object. This also means
+    # that if the input {Paragraph} has special singloton methods or
+    # instance variables, the information will be lost.
+    #
+    # @param arin [Array] of [Paragraph1, Boundary1, Para2, Bd2, ...] or just of Paragraphs if boundaries is given as the second arguments
     # @param boundaries [Array] of Boundary
     # @option recursive: [Boolean] if true (Default), normalize recursively.
     # @option compact: [Boolean] if true (Default), pairs of nil paragraph and boundary are removed.  Otherwise, nil is converted to an empty string.
     # @option compacter: [Boolean] if true (Default), pairs of nil or empty paragraph and boundary are removed.
     # @return [self]
     def initialize(arin, boundaries=nil, recursive: true, compact: true, compacter: true)
+      raise ArgumentError, "Arguments must be an Array(s) or equivalent: "+arin.inspect+(boundaries ? ", "+boundaries.inspect : "") if (!arin.respond_to?(:compact) && !arin.respond_to?(:paras)) || boundaries && !boundaries.respond_to?(:compact)  # arin must be an Array or Part
       if !boundaries
         @array = arin.clone
         #super(arin)
@@ -105,7 +122,12 @@ module PlainText
         @array = armain
         #super armain
       end
-      normalize!(recursive: recursive, compact: compact, compacter: compacter)
+
+      begin
+        normalize!(recursive: recursive, compact: compact, compacter: compacter)
+      rescue PlainText::PartNormalizeError => err
+        raise TypeError, err.message
+      end
     end
 
     # Parses a given string (or {Part}) and returns this class of instance.
@@ -118,6 +140,33 @@ module PlainText
       self.new(arin)
     end
 
+    # Returns true if it is {PlainText::Part}
+    def self.part?(other)
+      _part_paragraph_boundary?(other, __method__)
+    end
+
+    # Returns true if it is {PlainText::Part::Boundary}
+    def self.boundary?(other)
+      _part_paragraph_boundary?(other, __method__)
+    end
+
+    # Returns true if it is {PlainText::Part::Paragraph}
+    def self.paragraph?(other)
+      _part_paragraph_boundary?(other, __method__)
+    end
+
+    # Returns true if it is built-in String or similar
+    def self.builtin_string?(other)
+      other.respond_to?(:to_str) && !boundary? && !paragraph?
+    end
+
+    # Core routines for {Part.part?} etc.
+    def self._part_paragraph_boundary?(other, metho)
+      %i(boundary? paragraph? part?).all?{|i| other.respond_to? i} && other.send(metho)
+    end
+    private_class_method :_part_paragraph_boundary?
+
+
     ####################################################
     # Instance methods
     ####################################################
@@ -125,6 +174,18 @@ module PlainText
     ##########
     # Unique instance methods (not existing in Array)
     ##########
+
+    def boundary?
+      false
+    end
+
+    def paragraph?
+      false
+    end
+
+    def part?
+      true
+    end
 
     # Returns an array of boundaries (odd-number-index elements), consisting of Boundaries
     #
@@ -153,7 +214,8 @@ module PlainText
     # @return [Part]
     def deepcopy
       _return_this_or_other{
-        @array.dup.map!{ |i| i.respond_to?(:deepcopy) ? i.deepcopy : i.dup }
+        @array.dup.map!{ |i| i.respond_to?(:deepcopy) ? i.deepcopy : (i.dup rescue i)}
+        # the "rescue" deals with cases where i is immutable (which should never happen).
       }
     end
 
@@ -337,10 +399,8 @@ module PlainText
     # @return [self, nil] nil if nothing is merged (because of wrong indices).
     def merge_para!(*rest, use_para_index: false)
 $myd = true
-#print "DEBUG:m00: #{rest}; array=#{@array}\n"
       (ranchk = build_index_range_for_merge_para!(*rest, use_para_index: use_para_index)) || (return self)  # Do nothing.
       # ranchk is guaranteed to have a size of 2 or greater.
-#print "DEBUG:m0: #{ranchk}\n"
       @array[ranchk] = [Paragraph.new(@array[ranchk][0..-2].join), @array[ranchk.end]]  # Array[Range] replaced with 2-elements (Para, Boundary)
       self
     end
@@ -356,13 +416,10 @@ $myd = true
     # @param use_para_index [Boolean] false
     # @return [Range, nil] nil if no range is selected.
     def build_index_range_for_merge_para!(*rest, use_para_index: false)
-#warn "DEBUG:b0: #{rest.inspect} to_a=#{to_a}\n"
       inary = rest.flatten
       return nil if inary.empty?
       # inary = inary[0] if like_range?(inary[0])
-#warn "DEBUG:b1: #{inary.inspect}\n"
       (ary = to_ary_positive_index(inary, @array)) || return  # Guaranteed to be an array of positive indices (sorted and uniq-ed).
-#warn "DEBUG:b3: #{ary}\n"
       return nil if ary.empty?
 
       # Normalize so the array contains both Paragraph and Boundaries in between.
@@ -405,7 +462,6 @@ $myd = false
     def normalize!(recursive: true, ignore_array_boundary: true, compact: true, compacter: true)
       # Trim pairs of consecutive Paragraph and Boundary of nil
       size_parity = (@array.size.even? ? 0 : 1)
-#print "DEBUG:010:norm: ";p @array
       if (@array.compact || compacter) && (@array.size > 0+size_parity)
         ((@array.size-2-size_parity)..0).each do |i| 
           # Loop over every Paragraph
@@ -415,13 +471,12 @@ $myd = false
         end
       end
 
-#print "DEBUG:017:norm: ";p @array
       @array.map!.with_index{ |ea, ind|
-        normalize_core(ea, ind, recursive: recursive)
+        ax = normalize_core(ea, ind, recursive: recursive)
+        ax
+        #normalize_core(ea, ind, recursive: recursive)
       }
-#print "DEBUG:018:norm: ";p @array
       @array.insert(@array.size, Boundary.new('')) if @array.size.odd?
-#print "DEBUG:019:norm: ";p @array
       self
     end
 
@@ -530,7 +585,6 @@ $myd = false
     # @return [String]
     # @see PlainText::Part#subclass_name
     def subclass_name
-printf "DEBUG(part): __method__=(%s)\n", __method__
       self.class.name.split(/\A#{Regexp.quote method(__method__).owner.name}::/)[1] || ''
     end
 
@@ -571,31 +625,34 @@ printf "DEBUG(part): __method__=(%s)\n", __method__
       @array
     end
     alias_method :to_ary, :to_a
+    alias_method :instance, :to_a  if ! self.method_defined?(:instance)
 
     # Work around because Object#dup does not dup the instance variable @array
     #
     # @return [PlainText::Part]
     def dup
-      dup_or_clone(super, __method__)
+      dup_or_clone(super, __method__, '@array')
     end
 
     # Work around because Object#clone does not clone the instance variable @array
     #
     # @return [PlainText::Part]
     def clone
-      dup_or_clone(super, __method__)
+      dup_or_clone(super, __method__, '@array')
     end
  
-    # core routine for dup/clone
-    #
-    # @param copied [PlainText::Part] super-ed object
-    # @param metho [Symbol] method name
-    # @return [PlainText::Part]
-    def dup_or_clone(copied, metho)
-      val = (@array.send(metho)  rescue @array)  # rescue in case of immutable (though @array should never be so).
-      copied.instance_variable_set('@array', val)
-      copied 
-    end
+    ## core routine for dup/clone
+    ##
+    ## @param copied [PlainText::Part] super-ed object
+    ## @param metho [Symbol] method name
+    ## @return [PlainText::Part]
+    #def dup_or_clone(copied, metho)
+    #  val = (@array.send(metho)  rescue @array)  # rescue in case of immutable (though @array should never be so).
+    #  copied.instance_variable_set('@array', val)
+    #  # NOTE: copied.to_a.replace(val) would not work because it does not change @array.object_id
+    #  #   A setter like {#to_a=} or {#instance=} would work, though polimorphism would break.
+    #  copied 
+    #end
  
     # Equal operator
     #
@@ -605,54 +662,25 @@ printf "DEBUG(part): __method__=(%s)\n", __method__
     #
     # @param other [Object]
     def ==(other)
-#print "DEBUG:eq00: otehr"; p other
       #return false if !other.respond_to?(:to_ary)
       return false if  !other.respond_to?(:to_a) || !other.respond_to?(:normalize!)
-#print "DEBUG:eq01: to"; p ""
       %i(paras boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
-#print "DEBUG:eq05: method"; p ea_m
-#print "DEBUG:eq06: not_respond=(#{!(other.respond_to?(ea_m)).inspect})\n" if ea_m == :boundaries
-#print "DEBUG:eq07: eq=(#{(self.public_send(ea_m) != other.public_send(ea_m)).inspect})\n" if ea_m == :boundaries
-#print "DEBUG:eq08: ary=#{[self.public_send(ea_m), other.public_send(ea_m)].inspect}\n" if ea_m == :boundaries
         return false if !other.respond_to?(ea_m) || (self.public_send(ea_m) != other.public_send(ea_m))  # public_send() defined in Ruby 2.0 (1.9?) and later
       end
-#print "DEBUG:eq09: super\n"
       @array == other.to_a  # or you may just return true?
     end
  
-
-    # # Multiplication operator
-    # #
-    # # @param other [Integer, String]
-    # # @return as self
-    # def *(other)
-    #   super
-    # end
-
 
     # Plus operator
     #
     # @param other [Object]
     # @return as self
     def +(other)
-      # ## The following is strict, but a bit redundant.
-      # # is_para = true  # Whether "other" is a Part class instance.
-      # # %i(to_ary paras boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
-      # #   is_para &&= other.respond_to?(ea_m)
-      # # end
-
-      # begin
-      #   other_even_odd = 
-      #     ([other.paras, other.boundaries] rescue even_odd_arrays(ary, size_even: true, filler: ""))
-      # rescue NoMethodError
-      #   raise TypeError, sprintf("no implicit conversion of %s into %s", other.class.name, self.class.name)
-      # end
-
       # # eg., if self is PlainText::Part::Section, the returned object is the same.
       # ret = self.class.new(self.paras+other_even_odd[0], self.boundaries+other_even_odd[1])
-      raise(TypeError, "cannot operate with no #{self.class.name} instance (#{other.class.name})") if (!other.respond_to?(:to_a) && !other.respond_to?(:normalize!))
+      raise(TypeError, "cannot operate with no #{self.class.name} instance (#{other.class.name})") if (!other.respond_to?(:to_ary) && !other.respond_to?(:normalize!))
       #ret = self.class.new super
-      ret = self.class.new(@array+other.to_a)
+      ret = self.class.new(@array+other.to_ary)
       ret.normalize!
     end
  
@@ -662,9 +690,9 @@ printf "DEBUG(part): __method__=(%s)\n", __method__
     # @param other [Object]
     # @return as self
     def -(other)
-      raise ArgumentError, "cannot operate with no {self.class.name} instance" if !other.respond_to?(:to_a) || !other.respond_to?(:normalize!)
+      raise ArgumentError, "cannot operate with no {self.class.name} instance" if !other.respond_to?(:to_ary) || !other.respond_to?(:normalize!)
       #ret = self.class.new super
-      ret = self.class.new(@array+other.to_a)
+      ret = self.class.new(@array+other.to_ary)
       ret.normalize!
     end
  
@@ -688,12 +716,17 @@ printf "DEBUG(part): __method__=(%s)\n", __method__
     # Array#<< and Array#delete_at are undefined
     # because the instances of this class must take always an even number of elements.
     def method_missing(method_name, *args, **kwds)
-      if %i(<< delete_at).include? method_name
+      if DISABLED_ARRAY_METHODS.include? method_name
         raise NoMethodError, "no method "+method_name.to_s
       end
       _return_this_or_other{
         @array.public_send(method_name, *args, **kwds)
       }
+    end
+
+    # Redefines the behaviour of +respond_to?+ (essential when defining +method_missing+)
+    def respond_to_missing?(method_name, *rest)  # include_all=false
+      !DISABLED_ARRAY_METHODS.include?(method_name) && @array.respond_to?(method_name, *rest) || super
     end
 
     ## Array#<< is now undefined
@@ -820,29 +853,37 @@ printf "DEBUG(part): __method__=(%s)\n", __method__
     #
     # If ind is greater than size, a number of "", as opposed to nil, are inserted.
     #
-    # @param ind [Index]
+    # @param ind [Index] +rest+ is inserted *before* +ind+ if non-negative and *after* if negative.
     # @param rest [Array] This must have an even number of arguments, unless ind is larger than the array size and an odd number.
-    # @option primitive: [String] if true (Def: false), no wrapper action is performed.
+    # @option primitive: [Boolean] if true (Def: false), no wrapper action is performed.
     # @return [self]
     def insert(ind, *rest, primitive: false)
       #return insert_original_b4_part(ind, *rest) if primitive
       return _return_this_or_other(@array.insert(ind, *rest)) if primitive
 
-      ipos = positive_array_index_checked(ind, @array)
-      if    rest.size.even? && (ipos > size - 1) && ipos.even?  # ipos.even? is equivalent to index_para?(ipos), i.e., "is the index for Paragraph?"
-        raise ArgumentError, sprintf("number of arguments (%d) must be odd for index %s.", rest.size, ind)
-      elsif rest.size.odd?  && (ipos <= size - 1)
+      ipos = positive_array_index_checked(ind, @array)  # IndexError may be raised.
+      ipos += 1 if ind < 0
+      # If ipos is negative, it should be inserted AFTER the index according to Array#index,
+      # whereas if ipos is non-negative, inserted BEFORE.
+
+      #if    rest.size.even? && (ipos > size - 1) && ipos.even?  # ipos.even? is equivalent to index_para?(ipos), i.e., "is the index for Paragraph?"
+      #  raise ArgumentError, sprintf("number of arguments (%d) must be odd for index %s.", rest.size, ind)
+      #elsif rest.size.odd?  && (ipos <= size - 1)
+      if ipos > @array.size
+        raise IndexError, sprintf("index (%s) too large for array: maximum: %d.", ipos, @array.size)
+      elsif rest.size.odd?
         raise ArgumentError, sprintf("number of arguments (%d) must be even.", rest.size)
       end
 
-      if ipos >= @array.size
-        rest = Array.new(ipos - @array.size).map{|i| ""} + rest
-        ipos = @array.size
-      end
+      return self if rest.empty?
 
-      _return_this_or_other{
-        @array.insert(ipos, rest)
-      }
+      begin
+        _return_this_or_other{
+          @array.insert(ipos, *rest) && normalize! && self
+        }
+      rescue PlainText::PartNormalizeError => err
+        raise TypeError, err.message
+      end
     end
 
 
@@ -920,7 +961,7 @@ printf "DEBUG(part): __method__=(%s)\n", __method__
     # @param rest [Array]
     # @return [self]
     def push(*rest)
-      @array.concat(rest)
+      concat(rest)
     end
 
     # {#append} is an alias to {#push}
@@ -1035,12 +1076,19 @@ printf "DEBUG(part): __method__=(%s)\n", __method__
         if index_para?(i, accept_negative: false) || ignore_array_boundary
           (/\APlainText::/ =~ ea.class.name && defined?(ea.normalize)) ? (recursive ? ea.normalize : ea) : self.class.new(ea, recursive: recursive)
         else
-          raise "Index ({#i}) is an Array or its child, but it should be Boundary or String."
+          raise "Element at index ({#i}) is a Part or Array, but it should be Boundary or String."
         end
       elsif ea.respond_to?(:to_str)
+        if   i.even? && self.class.boundary?(ea)
+          msg = "not be Boundary"
+        elsif i.odd? && self.class.paragraph?(ea)
+          msg = "be neither Part nor Paragraph"
+        end
+        raise PlainText::PartNormalizeError, sprintf("Element at index=(%d) must %s", i, msg) if msg
+
         if /\APlainText::/ =~ ea.class.name
           # Paragraph or Boundary
-          ea.unicode_normalize
+          ea.unicode_normalize  # Unicode-normalized new object
         else
           if index_para?(i, accept_negative: false)
             Paragraph.new(ea.unicode_normalize || "")

@@ -61,6 +61,7 @@ module PlainText
     # If positive or zero, it returns i.
     # If the negative index is out of range, it returns nil.
     #
+    # @see #positive_array_index_checked
     # @param i [Integer]
     # @param arysize [Array, Integer] Reference Array or its size (Array#size).
     # @return [Integer, NilClass] nil if out of range to the negative.  Note in most cases in Ruby default, it raises IndexError.  See the code of {#positive_array_index_checked}
