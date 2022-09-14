@@ -6,7 +6,7 @@ require_relative "util"
 
 module PlainText
 
-  # Class to represent a Chapter-like entity like an Array
+  # Class to represent a Chapter-like entity, which behaves like an Array
   #
   # An instance of this class contains always an even number of elements,
   # either another {Part} instance or {Paragraph}-type String-like instance,
@@ -19,63 +19,73 @@ module PlainText
   # An example instance looks like this:
   #
   #   Part (
-  #     (0) Paragraph::Empty,
-  #     (1) Boundary::General,
+  #     (0) Part::Paragraph::Empty,
+  #     (1) Part::Boundary::General,
   #     (2) Part::ArticleHeader(
-  #           (0) Paragraph::Title,
-  #           (1) Boundary::Empty
+  #           (0) Part::Paragraph::Title,
+  #           (1) Part::Boundary::Empty
   #         ),
-  #     (3) Boundary::TitleMain,
+  #     (3) Part::Boundary::TitleMain,
   #     (4) Part::ArticleMain(
   #           (0) Part::ArticleSection(
-  #                 (0) Paragraph::Title,
-  #                 (1) Boundary::General,
-  #                 (2) Paragraph::General,
-  #                 (3) Boundary::General,
+  #                 (0) Part::Paragraph::Title,
+  #                 (1) Part::Boundary::General,
+  #                 (2) Part::Paragraph::General,
+  #                 (3) Part::Boundary::General,
   #                 (4) Part::ArticleSubSection(...),
-  #                 (5) Boundary::General,
-  #                 (6) Paragraph::General,
-  #                 (7) Boundary::Empty
+  #                 (5) Part::Boundary::General,
+  #                 (6) Part::Paragraph::General,
+  #                 (7) Part::Boundary::Empty
   #               ),
-  #           (1) Boundary::General,
-  #           (2) Paragraph::General,
-  #           (3) Boundary::Empty
+  #           (1) Part::Boundary::General,
+  #           (2) Part::Paragraph::General,
+  #           (3) Part::Boundary::Empty
   #         ),
-  #     (5) Boundary::General
+  #     (5) Part::Boundary::General
   #   )
   #
   # A Section (Part) always has an even number of elements: pairs of a Para ({Part}|{Paragraph}) and {Boundary} in this order.
   #
-  # Note some standard destructive Array operations, most notably +#delete+, +#delete_if+, +#reject!+,
+  # This class behaves like an Array and so Array methods that usually return
+  # an Array returns an instance of this class, such as +pt[0..-2]+.
+  # However, not all Array methods are accepted in the same way.
+  # For example, for the instance +pt+, +pt[0..-2]+ raises an Exception
+  # because it would violate the principle of the instance of this class
+  # having always an even number of elements.  Use +to_a+ to obtain
+  # a standard Array; e.g., +pt.to_a[0..-2]+ returns an Array with
+  # an odd number of elements.
+  #
+  # Some destructive Array operations, most notably +#delete+, +#delete_if+, +#reject!+,
   # +#select!+, +#filter!+, +#keep_if+, +#flatten!+, +#uniq!+ may alter the content in a way
-  # it breaks the self-inconsistency of the object.
+  # it breaks the self-consistency of the object.
   # Use it at your own risk, if you wish (or don't).
+  # Such operations may become prohibited in the future release.
+  # {#<<} and {#delete_at} are currently disabled.
   #
   # An instance of this class is always *non-equal* to that of the standard Array class.
-  # To compare it at the Array level, convert a {Part} class instance into Array with #to_a first and compare them.
+  # To compare it at the Array level, convert a {Part} class instance into Array
+  # with {#to_a} first: +pt.to_a == my_array+
   #
   # For CRUD of elements (contents) of an instance, the following methods are most basic:
   #
   # * Create:
-  #   * Insert/Append: {#insert} to insert. If the specified index is #size}, it means "append". For primitive operations, specify +primitive: true+ to skip various checks performed to guarantee the self-consistency as an instance of this class.
-  #   * {#<<} is disabled.
+  #   * Use +PlainText::Part.new+ (see {PlainText::Part.initialize})
   # * Read:
-  #   * Read: #to_a gives the standard Array, and then you can do whatever manipulation allowed for Array.  For example, if you delete an element in the returned Array, that does not affect the original {Part} instance.  However, it is a shallow copy, and hence if you alter an element of it destructively (such as String#replace), the original instance, too, is affected.
-  #     * The methods {#[]} (or its alias {#slice}) have some restrictions, such as, an odd number of elements cannot be retrieved, so as to conform the returned value is a valid instance of this class.
+  #   * All non-destructive Array operations are permitted and returns an instance of this class if the corresponding Array method returns an Array, providing it does not break the self-consistency.
+  #   * {#to_a} gives or exposes the internal Array object, and then you can do whatever manipulation allowed for Array with it, if you insist.  Note that destructive modification of the object carries a risk of breaking self-consistency of the instance and so is highly discouraged.  You must know what you are doing if you do.
   # * Update:
+  #   * Insert/Append: {#insert} to insert. If the specified index is #size}, it means "append". For primitive operations, specify +primitive: true+ to skip various checks performed to guarantee the self-consistency as an instance of this class.
   #   * Replace: {#[]=} has some restrictions, such as, if multiple elements are replaced, they have to be pairs of Paragraph and Boundary.  To skip all the checks, do {#insert} with +primitive: true+
   # * Delete:
   #   * Delete: {#slice!} to delete. For primitive operations, specify +primitive: true+ to skip various checks performed to guarantee the self-consistency as an instance of this class.
-  #     * +#delete_at+ is disabled. +#delete+, +#delete_if+, +#reject!+, +#select!+, +#filter!+, +#keep_if+ (and +#drop_while+ and +#take_whie+ in recent Ruby) remain enabled, but if you use them, make sure to use them carefully at your own risk, as no self-consistency checks would be performed automatically.
+  #     * +#delete_at+ is disabled. +#delete+, +#delete_if+, +#reject!+, +#select!+, +#filter!+, +#keep_if+ (and +#drop_while+ and +#take_whie+ in recent Ruby) remain enabled, but if you use them, do so at your own risk, as no self-consistency checks would be performed automatically. {#normalize} would return the self-consistent instance, or its destructive version, {#normalize!}.
   #
   # @author Masa Sakano (Wise Babel Ltd)
   #
   # @todo methods
   #   * flatten
-  #   * SAFE level  for command-line tools?
   #
   class Part
-  #class Part < Array
 
     include PlainText::BuiltinType
     include PlainText::Util
@@ -215,7 +225,7 @@ module PlainText
     def deepcopy
       _return_this_or_other{
         @array.dup.map!{ |i| i.respond_to?(:deepcopy) ? i.deepcopy : (i.dup rescue i)}
-        # the "rescue" deals with cases where i is immutable (which should never happen).
+        # the "rescue" deals with cases where i is immutable (which should never happen and in fact it would not raise an Exception in Ruby 3 seemingly).
       }
     end
 
@@ -568,52 +578,11 @@ $myd = false
     end
 
 
-    # Boundary sub-class name only
-    #
-    # Make sure your class is a child class of Part
-    # Otherwise this method would not be inherited, obviously.
-    #
-    # @example
-    #   class PlainText::Part
-    #     class Section < self
-    #       class Subsection < self; end  # It must be a child class!
-    #     end
-    #   end
-    #   ss = PlainText::Part::Section::Subsection.new ["abc"]
-    #   ss.subclass_name  # => "Section::Subsection"
-    #
-    # @return [String]
-    # @see PlainText::Part#subclass_name
-    def subclass_name
-      self.class.name.split(/\A#{Regexp.quote method(__method__).owner.name}::/)[1] || ''
-    end
-
     ##########
     # Overwriting instance methods of the parent Object or Array class
     ##########
 
-    ## Original equal and plus operators of Array
-    #hsmethod = {
-    #  :equal_original_b4_part => :==,
-    #  :substitute_original_b4_part => :[]=,
-    #  :insert_original_b4_part    => :insert,
-    #  :delete_at_original_b4_part => :delete_at,
-    #  :slice_original_b4_part     => :slice,
-    #  :slice_original_b4_part!    => :slice!,
-    #}
-
-    #hsmethod.each_pair do |k, ea_orig|
-    #  if self.method_defined?(k)
-    #    # To Developer: If you see this message, switch the DEBUG flag on (-d option) and run it.
-    #    warn sprintf("WARNING: Method %s#%s has been already defined, which should not be.  Contact the code developer. Line %d in %s%s", self.name, k.to_s, __FILE__, __LINE__, ($DEBUG ? "\n"+caller_locations.join("\n").map{|i| "  "+i} : ""))
-    #  else
-    #    alias_method k, ea_orig
-    #  end
-    #end
-    #
-    #alias_method :substit, :substitute_original_b4_part
-
-    ########## Most basic methods (Object) ##########
+    ########## Most basic methods (Object/BasicObject) ##########
 
     # @return [String]
     def inspect
@@ -631,28 +600,15 @@ $myd = false
     #
     # @return [PlainText::Part]
     def dup
-      dup_or_clone(super, __method__, '@array')
+      dup_or_clone(super, __method__, '@array') # defined in builtin_type.rb
     end
 
     # Work around because Object#clone does not clone the instance variable @array
     #
     # @return [PlainText::Part]
     def clone
-      dup_or_clone(super, __method__, '@array')
+      dup_or_clone(super, __method__, '@array') # defined in builtin_type.rb
     end
- 
-    ## core routine for dup/clone
-    ##
-    ## @param copied [PlainText::Part] super-ed object
-    ## @param metho [Symbol] method name
-    ## @return [PlainText::Part]
-    #def dup_or_clone(copied, metho)
-    #  val = (@array.send(metho)  rescue @array)  # rescue in case of immutable (though @array should never be so).
-    #  copied.instance_variable_set('@array', val)
-    #  # NOTE: copied.to_a.replace(val) would not work because it does not change @array.object_id
-    #  #   A setter like {#to_a=} or {#instance=} would work, though polimorphism would break.
-    #  copied 
-    #end
  
     # Equal operator
     #
@@ -662,8 +618,7 @@ $myd = false
     #
     # @param other [Object]
     def ==(other)
-      #return false if !other.respond_to?(:to_ary)
-      return false if  !other.respond_to?(:to_a) || !other.respond_to?(:normalize!)
+      return false if  !other.respond_to?(:to_ary) || !other.respond_to?(:normalize!)
       %i(paras boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
         return false if !other.respond_to?(ea_m) || (self.public_send(ea_m) != other.public_send(ea_m))  # public_send() defined in Ruby 2.0 (1.9?) and later
       end
@@ -679,7 +634,6 @@ $myd = false
       # # eg., if self is PlainText::Part::Section, the returned object is the same.
       # ret = self.class.new(self.paras+other_even_odd[0], self.boundaries+other_even_odd[1])
       raise(TypeError, "cannot operate with no #{self.class.name} instance (#{other.class.name})") if (!other.respond_to?(:to_ary) && !other.respond_to?(:normalize!))
-      #ret = self.class.new super
       ret = self.class.new(@array+other.to_ary)
       ret.normalize!
     end
@@ -691,7 +645,6 @@ $myd = false
     # @return as self
     def -(other)
       raise ArgumentError, "cannot operate with no {self.class.name} instance" if !other.respond_to?(:to_ary) || !other.respond_to?(:normalize!)
-      #ret = self.class.new super
       ret = self.class.new(@array+other.to_ary)
       ret.normalize!
     end
@@ -728,14 +681,6 @@ $myd = false
     def respond_to_missing?(method_name, *rest)  # include_all=false
       !DISABLED_ARRAY_METHODS.include?(method_name) && @array.respond_to?(method_name, *rest) || super
     end
-
-    ## Array#<< is now undefined
-    ## (because the instances of this class must take always an even number of elements).
-    #undef_method(:<<) if method_defined?(:<<)
- 
-    ## Array#delete_at is now undefined
-    ## (because the instances of this class must have always an even number of elements).
-    #undef_method(:delete_at) if method_defined?(:delete_at)
 
     # Returns a partial Part-Array (or Object, if a single Integer is specified)
     #
@@ -851,10 +796,14 @@ $myd = false
     #
     # The most basic method to add/insert elements to self.  Called from {#[]=} and {#push}, for example.
     #
-    # If ind is greater than size, a number of "", as opposed to nil, are inserted.
+    # The maximum permitted position index is the size of self,s
+    # unlike +Array#insert+, which allows an index larger than the size,
+    # in which case +nil+ is inserted in between.
+    #
+    # The number of the inserted elements must be always even.
     #
     # @param ind [Index] +rest+ is inserted *before* +ind+ if non-negative and *after* if negative.
-    # @param rest [Array] This must have an even number of arguments, unless ind is larger than the array size and an odd number.
+    # @param rest [Array] This must have an even number of arguments.
     # @option primitive: [Boolean] if true (Def: false), no wrapper action is performed.
     # @return [self]
     def insert(ind, *rest, primitive: false)
@@ -866,9 +815,6 @@ $myd = false
       # If ipos is negative, it should be inserted AFTER the index according to Array#index,
       # whereas if ipos is non-negative, inserted BEFORE.
 
-      #if    rest.size.even? && (ipos > size - 1) && ipos.even?  # ipos.even? is equivalent to index_para?(ipos), i.e., "is the index for Paragraph?"
-      #  raise ArgumentError, sprintf("number of arguments (%d) must be odd for index %s.", rest.size, ind)
-      #elsif rest.size.odd?  && (ipos <= size - 1)
       if ipos > @array.size
         raise IndexError, sprintf("index (%s) too large for array: maximum: %d.", ipos, @array.size)
       elsif rest.size.odd?
@@ -908,7 +854,6 @@ $myd = false
 
       if arg2
         size2delete = size2extract(arg1, arg2, ignore_error: true)  # maybe nil (if the index is too small).
-        # raise ArgumentError, ERR_MSGS[:even_num] if arg2.to_int.odd?
         raise ArgumentError, ERR_MSGS[:even_num] if size2delete && size2delete.odd?
         raise ArgumentError, "odd index is not allowed as the starting Range for #{self.class.name}.  It must be even." if arg1.odd?  # Because the returned value is this class of instance.
         return _return_this_or_other(@array.slice!(arg1, *rest))
@@ -1154,44 +1099,6 @@ $myd = false
 
 end # module PlainText
 
-
-####################################################
-# Modifies Array
-####################################################
-
-#class Array
-#
-#  # Original equal and plus operators of Array
-#  hsmethod = {
-#    :equal_original_b4_part? => :== ,
-#    # :plus_operator_original_b4_part => :+
-#  }
-#
-#  hsmethod.each_pair do |k, ea_orig|
-#    if self.method_defined?(k)
-#      # To Developer: If you see this message, switch the DEBUG flag on (-d option) and run it.
-#      warn sprintf("WARNING: Method %s#%s has been already defined, which should not be.  Contact the code developer. Line %d in %s%s", self.name, k.to_s, __FILE__, __LINE__, ($DEBUG ? "\n"+caller_locations.join("\n").map{|i| "  "+i} : ""))
-#    else
-#      alias_method k, ea_orig
-#    end
-#  end
-#
-#  # Equal operator modified to deal with {PlainText::Part}
-#  #
-#  # @param other [Object]
-#  def ==(other)
-#    return (self==other.to_a) if other.respond_to?(:to_a) && other.respond_to?(:normalize!)
-#    equal_original_b4_part?(other)
-#
-#    #return false if !other.respond_to?(:to_ary)
-#    #%i(paras boundaries).each do |ea_m|  # %i(...) defined in Ruby 2.0 and later
-#    #  return equal_original_b4_part?(other) if !other.respond_to?(ea_m)
-#    #  return false if !self.respond_to?(ea_m) || (self.public_send(ea_m) != other.public_send(ea_m))  # public_send() defined in Ruby 2.0 (1.9?) and later
-#    #end
-#    #true
-#  end
-#
-#end
 
 ####################################################
 # require (after the module is defined)

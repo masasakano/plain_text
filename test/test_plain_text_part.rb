@@ -40,6 +40,12 @@ require 'minitest/autorun'
 require 'rubygems' if !defined? Gem  # for Ruby 1
 IS_VER_2 = (Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3'))
 
+# defines user-defined subclasses.
+class PlainText::Part
+  class Section < self
+    class Subsection < self; end  # It must be a child class!
+  end
+end
 class PlainText::Part::Boundary::MyA < PlainText::Part::Boundary
 end
 
@@ -482,8 +488,16 @@ class TestUnitPlainTextPart < MiniTest::Test
     assert_equal s1,  pt1.join
   end
 
+  # subclass_name defined in /lib/plain_text/builtin_type.rb
   def test_subclass_name
-    assert_equal "Boundary::MyA", Pt::Boundary::MyA.new("\n===\n").subclass_name
+    bo1 = Pt::Boundary::MyA.new("\n===\n")
+    assert_equal "Part::Boundary::MyA", bo1.subclass_name
+    assert_equal       "Boundary::MyA", bo1.subclass_name(index_ini: 1)
+    assert_equal                 "MyA", bo1.subclass_name(index_ini: 2)
+
+    ss = PlainText::Part::Section::Subsection.new ["abc"]
+    assert_equal "Part::Section::Subsection", ss.subclass_name
+    assert_equal       "Section::Subsection", ss.subclass_name(index_ini: 1)
   end
 
   def test_dup
@@ -528,8 +542,8 @@ class TestUnitPlainTextPart < MiniTest::Test
     assert_equal Pt::Boundary,      pt1.to_a[1].class
     assert_equal Pt::Paragraph,     pt1.to_a[2].class
     assert_equal Pt::Boundary::MyA, pt1.to_a[3].class
-    assert_equal "Boundary::MyA", pt1.to_a[3].subclass_name, "subclass_name should be equal: pt1: #{pt1.to_a[3].inspect}"
-    assert_equal "Boundary::MyA", pt2.to_a[3].subclass_name
+    assert_equal "Part::Boundary::MyA", pt1.to_a[3].subclass_name, "subclass_name should be equal: pt1: #{pt1.to_a[3].inspect}"
+    assert_equal "Part::Boundary::MyA", pt2.to_a[3].subclass_name
     refute_equal pt1.object_id,         pt2.object_id
     refute_equal pt1.to_a[3].object_id, pt2.to_a[3].object_id
     refute_equal pt1.to_a[3].to_s.object_id, pt2.to_a[3].to_s.object_id

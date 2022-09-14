@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+require_relative "../builtin_type"
+
 module PlainText
   class Part
 
@@ -51,23 +53,23 @@ module PlainText
       #
       # @return [String]
       # @see PlainText::Part#subclass_name
-      def subclass_name
-#printf "DEBUG: __method__=(%s)\n", __method__
-        self.class.name.split(/\A#{Regexp.quote method(__method__).owner.name.split("::")[0..-2].join("::")}::/)[1] || ''  # removing "::StringType"
-      end
+#      def subclass_name
+##printf "DEBUG: __method__=(%s)\n", __method__
+#        self.class.name.split(/\A#{Regexp.quote method(__method__).owner.name.split("::")[0..-2].join("::")}::/)[1] || ''  # removing "::StringType"
+#      end
 
       # Work around because Object#dup does not dup the instance variable @string
       #
       # @return [PlainText::Part]
       def dup
-        dup_or_clone(super, __method__, '@string')
+        dup_or_clone(super, __method__, '@string') # defined in builtin_type.rb
       end
 
       # Work around because Object#clone does not clone the instance variable @string
       #
       # @return [PlainText::Part]
       def clone
-        dup_or_clone(super, __method__, '@string')
+        dup_or_clone(super, __method__, '@string') # defined in builtin_type.rb
       end
 
       # Core routine for comparison operators

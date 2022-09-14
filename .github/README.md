@@ -5,98 +5,100 @@
 
 This module provides utility functions and methods to handle plain text.  In
 the namespace, classes Part/Paragraph/Boundary are defined, which represent
-the logical structure of a document and another class ParseRule, which
+the logical structure of a document, and another class ParseRule, which
 describes the rules to parse plain text to produce a Part-type Ruby instance.
-This package also provides a few command-line programs, such as counting the
-number of characters (especially useful for documents in Asian (CJK)
+This package also contains a few command-line programs, such as counting the
+number of characters (which is especially useful for text in Asian (CJK)
 characters) and advanced head/tail commands.
 
 The master of this README file, as well as the document for all the methods,
-is found in [RubyGems/plain_text](https://rubygems.org/gems/plain_text) and in
-[Github](https://github.com/masasakano/plain_text) where all the hyperlinks
-are active.
+is found in [RubyGems/plain_text](https://rubygems.org/gems/plain_text), as
+well as in [Github](https://github.com/masasakano/plain_text), where all the
+hyperlinks are active.
 
 ## Design concept
 
 ### PlainText - Module and root Namespace
 
-The original plain text should be in String in Ruby.
+The original plain text should be String in Ruby.
 
-The module {PlainText} offers some useful methods, such as, {PlainText#head}
-and {PlainText#tail}.  They are meant to be included in String.  However, it
+The module {PlainText} provides some useful methods, such as, {PlainText#head}
+and {PlainText#tail}, which are meant to be included in String.  The module
 also contains some useful module functions, such as, {PlainText.clean_text}
 and {PlainText.count_char}.
 
 ### PlainText::Part - Core class to describe the logical structure
 
-In the namespace of this module, it contains {PlainText::Part} class, which is
-the heart to describe the logical structure of a document. It is basically a
-container class and indeed a sub-class of Array. It can contain either of
-other (multiple) {PlainText::Part} or more basic components of either of
-{PlainText::Part::Paragraph} and {PlainText::Part::Boundary}, both of which
-are sub-classes of String.
+The {PlainText::Part} class in the namespace of this module is the core class
+to describe the logical structure of a plain-text document. It is basically a
+container class and behaves like Array (it has been a subclass of Array up to
+Version 0.7). It contains one or more components of other {PlainText::Part}
+and {PlainText::Part::Paragraph}, each of which is always followed by a single
+{PlainText::Part::Boundary}. Both {PlainText::Part::Paragraph} and
+{PlainText::Part::Boundary} behave like String (they used to be subclasses of
+String up to Version 0.7).
 
 An example instance looks like this:
 
-```text
+```ruby
 Part (
-  (0) Paragraph::Empty,
-  (1) Boundary::General,
+  (0) Part::Paragraph::Empty,
+  (1) Part::Boundary::General,
   (2) Part::ArticleHeader(
-        (0) Paragraph::Title,
-        (1) Boundary::Empty
+        (0) Part::Paragraph::Title,
+        (1) Part::Boundary::Empty
       ),
-  (3) Boundary::TitleMain,
+  (3) Part::Boundary::TitleMain,
   (4) Part::ArticleMain(
         (0) Part::ArticleSection(
-              (0) Paragraph::Title,
-              (1) Boundary::General,
-              (2) Paragraph::General,
-              (3) Boundary::General,
+              (0) Part::Paragraph::Title,
+              (1) Part::Boundary::General,
+              (2) Part::Paragraph::General,
+              (3) Part::Boundary::General,
               (4) Part::ArticleSubSection(...),
-              (5) Boundary::General,
-              (6) Paragraph::General,
-              (7) Boundary::Empty
+              (5) Part::Boundary::General,
+              (6) Part::Paragraph::General,
+              (7) Part::Boundary::Empty
             ),
-        (1) Boundary::General,
-        (2) Paragraph::General,
-        (3) Boundary::Empty
+        (1) Part::Boundary::General,
+        (2) Part::Paragraph::General,
+        (3) Part::Boundary::Empty
       ),
-  (5) Boundary::General
+  (5) Part::Boundary::General
 )
 ```
 
-where the names of the subclasses (or constants) here are arbitrary, except
-for {PlainText::Part::Paragraph::Empty} and
-{PlainText::Part::Boundary::Empty}, which are pre-defined. Users can define
-their own subclasses to help organize the logical structure at their will.
+where the names of the subclasses are arbitrary, except for
+{PlainText::Part::Paragraph::Empty} and {PlainText::Part::Boundary::Empty},
+which are pre-defined. Users can define their own subclasses to help organize
+the logical structure at their will.
 
-Basically, at every layer, every {PlainText::Part} or
-{PlainText::Part::Paragraph} is sandwiched by {PlainText::Part::Boundary},
-except for the very first one. The former contains something significant on
-its own, whereas the latter (Boundary) contains nothing significant on its
-own, except they may indicate the type of the following (or preceding) entity,
-such as a title or section.
+{PlainText::Part} and {PlainText::Part::Paragraph} are supposed to contain
+something significant on its own, whereas {PlainText::Part::Boundary} contains
+a kind of separators, such as closing parentheses, spaces, newlines, and
+alike.
 
 In this library (document, classes and modules), the former and latter are
 collectively referred to as Para (or Paras) and Boundary (or Boundaries),
 respectively.  Namely, a Para means either of {PlainText::Part} and
 {PlainText::Part::Paragraph}.
 
-By performing `Part#join` method, one can retrieve the entire document as a
-String instance any time, just like `Array#join`.
+`Part#join` method returns the entire plain-text document as a String
+instance, just like `Array#join`.
 
 ### PlainText::ParseRule - Class to describe the rule of how to parse
 
 {PlainText::ParseRule} is the class to describe how to parse initially String,
 and subsequently {PlainText::Part}, which is basically an Array.
 {PlainText::ParseRule} is a container class and holds a set of ordered rules,
-each of which is either Proc or Regexp as a more simple rule. A rule, Proc, is
-defined by a user and is designed to receive either String (the first
-application only) or {PlainText::ParseRule} (Array) and to return a fully (or
-partially) parsed {PlainText::ParseRule}. In short, the rule descries how to
-determine from where to where a Paras and Boundaries are located — for
-example, what and where the sections and sub-sections are and so on are.
+each of which is either Proc or Regexp.
+
+A rule of Proc is defined by a user and is designed to receive either String
+(the first application only) or {PlainText::ParseRule} (Array) and to return a
+fully (or partially) parsed {PlainText::ParseRule}. In short, the rule
+descries how to determine from where to where a Paras and Boundaries are
+located — for example, what and where the sections and sub-sections and so on
+are.
 
 For example, if a rule is Regexp, it describes how to split a String; it is
 applied to String in the first application, but if it is applied (and maybe
@@ -104,7 +106,7 @@ registered as such) at the second or later stages, it is applied to each Para
 separately to split them further.
 
 {PlainText::ParseRule#apply} and {PlainText::Part.parse} are the standard
-methods to apply the rules to an object (either String or {PlainText::Part}.
+methods to apply the rules to an object (either String or {PlainText::Part}).
 
 ## Command-line tools
 
@@ -227,7 +229,7 @@ good automation job.
 
 Module {PlainText::Split} contains an instance method (and class method with
 the same name) {PlainText::Split#split_with_delimiter}, which is included in
-String in default.  The method realises a reversible split of String with a
+String in default.  The method realizes a reversible split of String with a
 delimiter of an arbitrary Regexp.
 
 In the standard String#split, the following is the result, when sent by a
@@ -257,30 +259,36 @@ Work in progress...
 
 ## Install
 
-This script requires [Ruby](http://www.ruby-lang.org) Version 2.0 or above
-(possibly 2.2 or above?).
+The easiest way to install this library is simply
 
-For use of the library, if your Ruby script declares
+```ruby
+gem install plain_text
+```
+
+The library files should be installed in one of your `$LOAD_PATH` and also all
+the executables (commands) should be installed in one of your command-line
+search paths.
+
+Alternatively, get it from {http://rubygems.org/gems/plain_text}, making sure
+the library path and command-line search path are set appropriately.
+
+Then all you need to do is
 
 ```ruby
 require "plain_text"
 ```
 
-all the related libraries should be read. If you `include PlainText` from
-String, it would be handy, though not mandatory to use this library.
+in your Ruby script (or irb).
 
-As for the command-line script files, they can be put in any of your
-command-line search paths.  Make sure the RUBYLIB environment variable
-contains the library directory to this gem, which is
+This script requires [Ruby](http://www.ruby-lang.org) Version 2.0 or above
+(possibly 2.2 or above?).
 
-```ruby
-/THIS/GEM/LIBRARY/PATH/plain_text/lib
-```
+If you `include PlainText` from String, it would be handy, though not
+mandatory to use this library.
 
-(which should be set automatically, as long as you use the standard Gem
-environment). You may need to modify the first line (Shebang line) of the
-script to suit your environment (it should be unnecessary for Linux and
-MacOS), or run it explicitly with your Ruby command as
+As for the shell-executables, you might need to modify the first line (Shebang
+line) of the scripts to suit your environment (it should be unnecessary for
+Linux and MacOS), or run them explicitly with your Ruby command, such as
 
 ```sh
 % /YOUR/ENV/ruby /YOUR/INSTALLED/countchar
@@ -298,8 +306,8 @@ for annotation but with easily-browsable
 
 ### Tests
 
-Ruby codes under the directory `test/` are the test scripts. You can run them
-from the top directory as `ruby test/test_****.rb` or simply run `make test`.
+The test suite is located under the directory `test/`. You can run them from
+the top directory as `ruby test/test_****.rb` or simply run `make test`.
 
 ## Known bugs
 

@@ -8,12 +8,17 @@
 # Many of the methods work on tha basis of a line.  For example, {#head} and {#tail} methods
 # work like the respective UNIX-shell commands, returning a specified line at the head/tail parts of self.
 #
-# Most methods in this module are meant to be included in String, except for a few module functions.
-# It is however debatable whether it is a good practice to include a third-party module in the core class.
-# This module contains a helper module function {PlainText.extend_this}, with which an object extends this module easily as Singleton if this module is not already included.
+# Many of the methods contained directly in this module are meant to be
+# included in String. Obviously, though, it is debatable if it is
+# a good practice to include a third-party module in the core class.
+#
+# Several module functions are also available.
+# This module contains a helper module function {PlainText.extend_this}, with which
+# an object extends this module easily as Singleton if this module is not already included.
 #
 # A few methods in this module assume that {PlainText::Split} is included in String,
 # which in default is the case, as soon as this file is read (by Ruby's require).
+# The specification may be subject to change in the future release.
 #
 # @author Masa Sakano (Wise Babel Ltd)
 #
@@ -419,12 +424,10 @@ module PlainText
         lastsps_style:  ,
         is_debug: false
       )
-#print "DEBUG:233:clht:prt="; p prt
     # Handles the beginning of the given Part.
     obj = prt.first_significant_element || return
     # The first significant element is either Paragraph or Background.
     # obj may be nil.
-#print "DEBUG:234:clht:obj="; p obj
 
     case firstlbs_style
     when String
@@ -451,7 +454,6 @@ module PlainText
     else
       raise ArgumentError, "Invalid firstlbs_style (#{firstlbs_style.inspect}) is specified."
     end
-#print "DEBUG:235:clht:obj="; p obj
 
     # Handles the end of the given Part.
     ind = prt.last_significant_index
@@ -472,11 +474,8 @@ module PlainText
     else
       raise ArgumentError, "Invalid lastsps_style (#{lastsps_style.inspect}) is specified."
     end
-#print "DEBUG:236:clht:obj="; p obj
 
     return nil if !changed
-#print "DEBUG:237:clht:obj="; p obj
-#print "DEBUG:238:clht:prt="; p prt
     ma = /^#{Regexp.quote prt[ind_para]}/.match obj
     if ma
     prt[ind_para].replace ma[0]
@@ -485,7 +484,6 @@ module PlainText
     prt[ind_para].replace obj
     prt[ind_para+1].replace ""
     end
-#print "DEBUG:240:clht:prt="; p prt
   end # self.clean_text_file_head_tail!
   private_class_method :clean_text_file_head_tail!
 
